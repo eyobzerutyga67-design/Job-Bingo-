@@ -45,7 +45,7 @@ function resetGame() {
     gameState.playersCount = 0;
 }
 
-// Global 1-second server ticker engine
+// Fixed 1-second timer loop
 setInterval(() => {
     try {
         if (gameState.status === "WAITING") {
@@ -93,12 +93,9 @@ setInterval(() => {
 
 // Keep-Alive Self Ping
 setInterval(() => {
-    https.get(WEB_APP_URL, (res) => {
-        console.log("Keep-alive ping:", res.statusCode);
-    }).on('error', () => {});
+    https.get(WEB_APP_URL, (res) => {}).on('error', () => {});
 }, 4 * 60 * 1000);
 
-// Helper for WebApp Link
 function sendLobbyMenu(ctx) {
     const freshUrl = `${WEB_APP_URL}?v=${Date.now()}`;
     return ctx.reply('🎮 *Welcome to Best Bingo!*', {
@@ -109,15 +106,10 @@ function sendLobbyMenu(ctx) {
     });
 }
 
-// Bot Command Mapping
 bot.start((ctx) => sendLobbyMenu(ctx));
 bot.command('play', (ctx) => sendLobbyMenu(ctx));
 bot.command('deposit', (ctx) => sendLobbyMenu(ctx));
 
-// Express Endpoint for Webhook
-app.use(bot.webhookCallback(`/bot${BOT_TOKEN}`));
-
-// Express Web App Endpoints
 app.get('/api/game/state', (req, res) => res.json(gameState));
 
 app.post('/api/game/select-card', (req, res) => {
@@ -133,12 +125,12 @@ app.post('/api/game/select-card', (req, res) => {
     res.json({ success: true, selectedCards: gameState.selectedCards, derash: gameState.derash });
 });
 
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
-    try {
-        await bot.telegram.setWebhook(`${WEB_APP_URL}/bot${BOT_TOKEN}`);
-        console.log("Webhook registered successfully!");
-    } catch (err) {
-        console.error("Webhook error:", err);
-    }
+    bot.launch({ dropPendingUpdates: true })
+        .then(() => console.log('Bot polling launched successfully!'))
+        .catch(err => console.error("Bot launch error:", err));
 });
+
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
