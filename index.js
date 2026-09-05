@@ -19,6 +19,7 @@ app.use(express.static('public'));
 
 const bot = new Telegraf(BOT_TOKEN);
 
+// Global Game State
 let gameState = {
     gameId: "36374",
     status: "WAITING",
@@ -44,7 +45,7 @@ function resetGame() {
     gameState.playersCount = 0;
 }
 
-// Fixed 1-second background state ticker
+// Global 1-second server ticker engine
 setInterval(() => {
     try {
         if (gameState.status === "WAITING") {
@@ -90,19 +91,17 @@ setInterval(() => {
     }
 }, 1000);
 
-// Keep-Alive Self Ping (Prevents Render Free Tier from spinning down)
+// Keep-Alive Self Ping
 setInterval(() => {
     https.get(WEB_APP_URL, (res) => {
-        console.log("Self-ping status:", res.statusCode);
-    }).on('error', (e) => {
-        console.error("Self-ping failed:", e.message);
-    });
-}, 5 * 60 * 1000); // Ping every 5 minutes
+        console.log("Keep-alive ping:", res.statusCode);
+    }).on('error', () => {});
+}, 4 * 60 * 1000);
 
-// Bot Handlers
-function sendLobbyLink(ctx) {
+// Helper for WebApp Link
+function sendLobbyMenu(ctx) {
     const freshUrl = `${WEB_APP_URL}?v=${Date.now()}`;
-    return ctx.reply('🎮 *Welcome to Job Bingo!*', {
+    return ctx.reply('🎮 *Welcome to Best Bingo!*', {
         parse_mode: 'Markdown',
         reply_markup: {
             inline_keyboard: [[{ text: "🎯 ENTER GAME LOBBY", web_app: { url: freshUrl } }]]
@@ -110,11 +109,15 @@ function sendLobbyLink(ctx) {
     });
 }
 
-bot.start((ctx) => sendLobbyLink(ctx));
-bot.command('play', (ctx) => sendLobbyLink(ctx));
-bot.command('deposit', (ctx) => sendLobbyLink(ctx));
+// Bot Command Mapping
+bot.start((ctx) => sendLobbyMenu(ctx));
+bot.command('play', (ctx) => sendLobbyMenu(ctx));
+bot.command('deposit', (ctx) => sendLobbyMenu(ctx));
 
-// Endpoints
+// Express Endpoint for Webhook
+app.use(bot.webhookCallback(`/bot${BOT_TOKEN}`));
+
+// Express Web App Endpoints
 app.get('/api/game/state', (req, res) => res.json(gameState));
 
 app.post('/api/game/select-card', (req, res) => {
@@ -130,8 +133,12 @@ app.post('/api/game/select-card', (req, res) => {
     res.json({ success: true, selectedCards: gameState.selectedCards, derash: gameState.derash });
 });
 
-app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
-bot.launch().catch(err => console.error("Bot launch failed:", err));
-
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+app.listen(PORT, async () => {
+    console.log(`Server listening on port ${PORT}`);
+    try {
+        await bot.telegram.setWebhook(`${WEB_APP_URL}/bot${BOT_TOKEN}`);
+        console.log("Webhook registered successfully!");
+    } catch (err) {
+        console.error("Webhook error:", err);
+    }
+});
