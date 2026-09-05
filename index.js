@@ -22,7 +22,7 @@ const bot = new Telegraf(BOT_TOKEN);
 // Global Game State
 let gameState = {
     gameId: "36374",
-    status: "WAITING",
+    status: "WAITING", // WAITING (40s) -> CALCULATING (5s) -> PLAYING -> WINNER (10s)
     timer: 40,
     stake: 10,
     playersCount: 0,
@@ -30,8 +30,26 @@ let gameState = {
     currentBall: null,
     calledNumbers: [],
     selectedCards: [],
-    winner: null
+    winner: null,
+    // Assigns ball colors B(🟢), I(🟡), N(🔴), G(🔵), O(🟢)
+    ballColors: { B: "🟢", I: "🟡", N: "🔴", G: "🔵", O: "🟢" }
 };
+
+function getBallInfo(num) {
+    if (!num) return null;
+    let letter = "B";
+    if (num >= 16 && num <= 30) letter = "I";
+    else if (num >= 31 && num <= 45) letter = "N";
+    else if (num >= 46 && num <= 60) letter = "G";
+    else if (num >= 61 && num <= 75) letter = "O";
+    
+    return {
+        number: num,
+        letter: letter,
+        color: gameState.ballColors[letter],
+        formatted: `${gameState.ballColors[letter]} ${letter}-${num}`
+    };
+}
 
 function resetGame() {
     gameState.gameId = Math.floor(10000 + Math.random() * 90000).toString();
@@ -45,13 +63,29 @@ function resetGame() {
     gameState.playersCount = 0;
 }
 
-// Fixed 1-Second Timer Engine
+// Master Game Loop (1-Second Engine)
 setInterval(() => {
     try {
         if (gameState.status === "WAITING") {
             if (gameState.timer > 0) {
                 gameState.timer--;
             } else {
+                // 40 seconds reached -> Move to 5s calculation phase
+                gameState.status = "CALCULATING";
+                gameState.timer = 5;
+            }
+        } else if (gameState.status === "CALCULATING") {
+            if (gameState.timer > 0) {
+                gameState.timer--;
+            } else {
+                // If player didn't pick a card, automatically assign one
+                if (gameState.selectedCards.length === 0) {
+                    const autoPickedCard = Math.floor(Math.random() * 100) + 1;
+                    gameState.selectedCards.push(autoPickedCard);
+                    gameState.derash += gameState.stake;
+                    gameState.playersCount = 1;
+                }
+                // Calculation finished -> Start live game
                 gameState.status = "PLAYING";
                 gameState.timer = 0;
             }
@@ -63,15 +97,16 @@ setInterval(() => {
                 } while (gameState.calledNumbers.includes(nextNum));
 
                 gameState.calledNumbers.push(nextNum);
-                gameState.currentBall = nextNum;
+                gameState.currentBall = getBallInfo(nextNum);
 
+                // Simulation: Win condition triggered after 8 called numbers
                 if (gameState.calledNumbers.length >= 8) {
                     gameState.status = "WINNER";
                     gameState.timer = 10;
                     gameState.winner = {
                         player: "aemro (*9025)",
                         prize: gameState.derash > 0 ? gameState.derash : 152,
-                        cardId: 9
+                        cardId: gameState.selectedCards[0] || 9
                     };
                 }
             } else {
@@ -87,16 +122,16 @@ setInterval(() => {
             }
         }
     } catch (err) {
-        console.error("Timer error:", err);
+        console.error("Game loop error:", err);
     }
 }, 1000);
 
-// Keep Alive Self-Ping for Render Free Tier
+// Keep alive service ping
 setInterval(() => {
     https.get(WEB_APP_URL, (res) => {}).on('error', () => {});
 }, 4 * 60 * 1000);
 
-// Telegram Command Handler
+// Telegram Command Handlers
 function sendLobbyMenu(ctx) {
     const freshUrl = `${WEB_APP_URL}?v=${Date.now()}`;
     return ctx.reply('🎮 *Welcome to Best Bingo!*', {
@@ -109,15 +144,14 @@ function sendLobbyMenu(ctx) {
 
 bot.start((ctx) => sendLobbyMenu(ctx));
 bot.command('play', (ctx) => sendLobbyMenu(ctx));
-bot.command('deposit', (ctx) => sendLobbyMenu(ctx));
 
-// Express Endpoints
+// API Endpoints for Web App
 app.get('/api/game/state', (req, res) => res.json(gameState));
 
 app.post('/api/game/select-card', (req, res) => {
     const { cardId } = req.body;
     if (gameState.status !== "WAITING") {
-        return res.json({ success: false, message: "Game in progress" });
+        return res.json({ success: false, message: "Selection closed" });
     }
     if (!gameState.selectedCards.includes(cardId)) {
         gameState.selectedCards.push(cardId);
@@ -127,7 +161,7 @@ app.post('/api/game/select-card', (req, res) => {
     res.json({ success: true, selectedCards: gameState.selectedCards, derash: gameState.derash });
 });
 
-// Listen Server & Launch Bot
+// Launch listener and web server
 app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
     
