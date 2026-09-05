@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Bingo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="top-bar">
+        <button class="btn-refresh" onclick="location.reload()">REFRESH</button>
+        <div class="balance-box">BALANCE:<br><span class="balance-amt">0 ETB</span></div>
+        <div class="ticker-pill">ስአት ገላው 1000 ቦነስ አ</div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card">Derash<div class="stat-val" id="derashVal">0 ETB</div></div>
+        <div class="stat-card">Players<div class="stat-val" id="playersVal">0</div></div>
+        <div class="stat-card">Stake<div class="stat-val">10 ETB</div></div>
+        <div class="stat-card">Call<div class="stat-val" id="callCount">0/75</div></div>
+    </div>
+
+    <div class="view-toggle">
+        <button id="btnPickView" class="toggle-btn active" onclick="switchView('pick')">Pick Cards (1-500)</button>
+        <button id="btnGameView" class="toggle-btn" onclick="switchView('game')">Live Game</button>
+    </div>
+
+    <div id="statusBanner" class="status-banner">Next Round in: <span id="timerVal">40</span>s</div>
+
+    <!-- 1-500 Scrollable Grid -->
+    <div id="viewPick" class="card-picker-grid"></div>
+
+    <!-- Live Board View -->
+    <div id="viewGame" class="game-main-view" style="display: none;">
+        <div class="vertical-board">
+            <div class="v-header-row">
+                <span>B</span><span>I</span><span>N</span><span>G</span><span>O</span>
+            </div>
+            <div id="vBoardGrid" class="v-grid"></div>
+        </div>
+        <div class="right-controls">
+            <div id="ballCallBox" class="ball-call-lg">B--</div>
+            <div class="auto-toggle-box">
+                <span>AUTO</span>
+                <input type="checkbox" checked>
+            </div>
+            <div class="wait-msg">
+                የዚህ ዙር ጨዋታ ተጀምሯል። አዲስ ዙር እስኪጀምር እዚህ ይጠበቁ።
+            </div>
+        </div>
+    </div>
+
+    <!-- Winner Card Modal -->
+    <div id="winnerModal" class="modal" style="display: none;">
+        <div class="winner-card-box">
+            <div class="winner-title">🏆 BINGO!</div>
+            <div class="winner-sub"><span id="winPlayer">aemro (*9025)</span> won!</div>
+            
+            <div class="modal-grid-header">
+                <span style="color:#ff9800">B</span><span style="color:#4caf50">I</span><span style="color:#2196f3">N</span><span style="color:#ff9800">G</span><span style="color:#9c27b0">O</span>
+            </div>
+            <div id="modalCardGrid" class="modal-grid"></div>
+
+            <div class="modal-footer">
+                <span id="winPrize">Prize: 152 ETB</span>
+                <span id="winCardNo">Card# 9</span>
+            </div>
+            <div class="win-countdown">Next Game in: <span id="winTimer">10</span>s</div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
