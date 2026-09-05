@@ -7,15 +7,16 @@ const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN || "8852120494:AAGxTDoAtrwJ_wLm46JJD_3umqtxEP8LcZ8";
 const WEB_APP_URL = "https://job-bingo.onrender.com";
 
+app.use(express.json());
+app.use(express.static('public'));
+
+// Prevent caching for WebApp static files
 app.use((req, res, next) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
     next();
 });
-
-app.use(express.json());
-app.use(express.static('public'));
 
 const bot = new Telegraf(BOT_TOKEN);
 
@@ -45,7 +46,7 @@ function resetGame() {
     gameState.playersCount = 0;
 }
 
-// Fixed 1-second timer loop
+// Fixed 1-Second Timer Engine
 setInterval(() => {
     try {
         if (gameState.status === "WAITING") {
@@ -86,16 +87,21 @@ setInterval(() => {
                 resetGame();
             }
         }
-    } catch (e) {
-        console.error("Timer error:", e);
+    } catch (err) {
+        console.error("Timer error:", err);
     }
 }, 1000);
 
-// Keep-Alive Self Ping
+// Keep Alive Self-Ping for Render Free Tier
 setInterval(() => {
-    https.get(WEB_APP_URL, (res) => {}).on('error', () => {});
+    https.get(WEB_APP_URL, (res) => {
+        console.log(`[Keep-Alive] Ping status: ${res.statusCode}`);
+    }).on('error', (err) => {
+        console.error("[Keep-Alive] Ping failed:", err.message);
+    });
 }, 4 * 60 * 1000);
 
+// Telegram Command Reply Handler
 function sendLobbyMenu(ctx) {
     const freshUrl = `${WEB_APP_URL}?v=${Date.now()}`;
     return ctx.reply('🎮 *Welcome to Best Bingo!*', {
@@ -110,6 +116,7 @@ bot.start((ctx) => sendLobbyMenu(ctx));
 bot.command('play', (ctx) => sendLobbyMenu(ctx));
 bot.command('deposit', (ctx) => sendLobbyMenu(ctx));
 
+// Express Web App Endpoints
 app.get('/api/game/state', (req, res) => res.json(gameState));
 
 app.post('/api/game/select-card', (req, res) => {
@@ -125,11 +132,13 @@ app.post('/api/game/select-card', (req, res) => {
     res.json({ success: true, selectedCards: gameState.selectedCards, derash: gameState.derash });
 });
 
+// Start Express and Bot Listener
 app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
+    console.log(`Express server running on port ${PORT}`);
+    
     bot.launch({ dropPendingUpdates: true })
-        .then(() => console.log('Bot polling launched successfully!'))
-        .catch(err => console.error("Bot launch error:", err));
+        .then(() => console.log('>>> Telegram Bot Listener is LIVE! <<<'))
+        .catch(err => console.error('Telegram Bot Launch Failed:', err));
 });
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
