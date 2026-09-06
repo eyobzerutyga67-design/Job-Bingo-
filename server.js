@@ -150,7 +150,7 @@ setInterval(() => {
             let foundWinner = false;
             for (let cardId in gameState.userCards) {
                 const matrix = gameState.userCards[cardId];
-                if (checkBingoWin(matrix, gameState.calledNumbers)) {
+                if (checkBingoWin(matrix, gameState.calledNumbers) === true) {
                     gameState.status = 'WINNER';
                     gameState.winner = {
                         player: 'aemro (*9025)',
@@ -162,6 +162,7 @@ setInterval(() => {
                     foundWinner = true;
                     break;
                 }
+            }
             }
 
             if (!foundWinner && remainingBalls.length === 0) {
