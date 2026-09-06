@@ -8,7 +8,7 @@ const server = http.createServer(app);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Synchronized Card Generation Algorithm
+// Generate standard 5x5 matrix
 function generateBingoCard(cardId) {
     const seed = cardId * 1000;
     const getCol = (min, max, offset) => {
@@ -37,11 +37,11 @@ function generateBingoCard(cardId) {
     return matrix;
 }
 
-// Strict Bingo Pattern Checking (Must be complete line/corner)
+// Check standard Bingo rules (Row, Column, Diagonal, 4 Corners)
 function checkBingoWin(matrix, calledNumbers) {
     if (!matrix || !Array.isArray(matrix)) return false;
 
-    const isMarked = (val) => val === 'FREE' || calledNumbers.includes(val);
+    const isMarked = (val) => val === 'FREE' || val === 'F' || calledNumbers.includes(val);
 
     // 1. Horizontal Rows (5 in a horizontal line)
     for (let r = 0; r < 5; r++) {
@@ -149,7 +149,7 @@ setInterval(() => {
 
             gameState.currentBall = { letter, number: nextNum };
 
-            // Check if any card has hit a REAL complete Bingo pattern
+            // Check if any registered user card has a valid pattern
             let foundWinner = false;
             for (let cardId in gameState.userCards) {
                 const matrix = gameState.userCards[cardId];
@@ -167,7 +167,7 @@ setInterval(() => {
                 }
             }
 
-            // If no balls left and no winner found, end game cleanly
+            // End game without declaring a winner if all 75 balls are drawn with no completed patterns
             if (!foundWinner && remainingBalls.length === 0) {
                 gameState.status = 'WAITING';
                 gameState.timer = 30;
