@@ -169,34 +169,6 @@
         let userCardsData = {};
         let previousStatus = 'WAITING';
 
-        function generateBingoCard(cardId) {
-            const seed = cardId * 1000;
-            const getCol = (min, max, offset) => {
-                let nums = [];
-                for (let i = min; i <= max; i++) nums.push(i);
-                let result = [];
-                for (let i = 0; i < 5; i++) {
-                    let idx = (seed + offset + i * 7) % nums.length;
-                    result.push(nums.splice(idx, 1)[0]);
-                }
-                return result;
-            };
-
-            let b = getCol(1, 15, 1);
-            let i = getCol(16, 30, 2);
-            let n = getCol(31, 45, 3);
-            let g = getCol(46, 60, 4);
-            let o = getCol(61, 75, 5);
-
-            n[2] = "FREE";
-
-            let matrix = [];
-            for (let row = 0; row < 5; row++) {
-                matrix.push([b[row], i[row], n[row], g[row], o[row]]);
-            }
-            return matrix;
-        }
-
         function switchTab(tab) {
             currentTab = tab;
             document.getElementById('tab-pick').classList.toggle('active', tab === 'pick');
@@ -306,8 +278,9 @@
 
         function render1To500PickerGrid() {
             const grid = document.getElementById('ui-numbers-grid');
+            const selectedKeys = Object.keys(userCardsData).map(Number);
+
             if (grid.children.length > 0) {
-                const selectedKeys = Object.keys(userCardsData).map(Number);
                 for (let i = 1; i <= 500; i++) {
                     const btn = document.getElementById(`btn-card-${i}`);
                     if (btn) btn.classList.toggle('selected', selectedKeys.includes(i));
@@ -316,8 +289,6 @@
             }
 
             grid.innerHTML = '';
-            const selectedKeys = Object.keys(userCardsData).map(Number);
-
             for (let i = 1; i <= 500; i++) {
                 const btn = document.createElement('div');
                 btn.id = `btn-card-${i}`;
@@ -332,18 +303,20 @@
             const container = document.getElementById('ui-cards-container');
             container.innerHTML = '';
 
-            const selectedKeys = Object.keys(userCardsData).map(Number);
+            const selectedKeys = Object.keys(userCardsData);
             selectedKeys.forEach(cardId => {
+                const matrix = userCardsData[cardId];
+                if (!matrix) return;
+
                 const cardDiv = document.createElement('div');
                 cardDiv.className = 'full-card-item';
 
-                const matrix = generateBingoCard(cardId);
                 let innerHTML = `<div class="full-card-title">Card #${cardId}</div><div class="mini-bingo-grid">`;
 
                 for (let r = 0; r < 5; r++) {
                     for (let c = 0; c < 5; c++) {
                         const val = matrix[r][c];
-                        const cellClass = val === 'FREE' ? 'mini-cell free' : 'mini-cell';
+                        const cellClass = (val === 'FREE' || val === 'F') ? 'mini-cell free' : 'mini-cell';
                         innerHTML += `<div class="${cellClass}">${val}</div>`;
                     }
                 }
@@ -362,6 +335,8 @@
 
             cardIds.forEach(cardId => {
                 const matrix = userCardsData[cardId];
+                if (!matrix) return;
+
                 const boardDiv = document.createElement('div');
                 boardDiv.className = 'bingo-board';
 
@@ -370,8 +345,8 @@
                 for (let r = 0; r < 5; r++) {
                     for (let c = 0; c < 5; c++) {
                         const val = matrix[r][c];
-                        let isMarked = val === 'FREE' || (isAuto && calledNumbers.includes(val));
-                        let cellClass = val === 'FREE' ? 'mini-cell free' : (isMarked ? 'mini-cell marked' : 'mini-cell');
+                        let isMarked = val === 'FREE' || val === 'F' || (isAuto && calledNumbers.includes(val));
+                        let cellClass = (val === 'FREE' || val === 'F') ? 'mini-cell free' : (isMarked ? 'mini-cell marked' : 'mini-cell');
                         boardHTML += `<div class="${cellClass}">${val}</div>`;
                     }
                 }
@@ -395,7 +370,7 @@
                 for (let c = 0; c < 5; c++) {
                     const val = winner.cardMatrix[r][c];
                     const cell = document.createElement('div');
-                    if (val === 'FREE') {
+                    if (val === 'FREE' || val === 'F') {
                         cell.className = 'winner-cell free';
                         cell.innerText = 'F';
                     } else if (calledNumbers.includes(val)) {
