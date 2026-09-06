@@ -8,9 +8,11 @@ const server = http.createServer(app);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Generate standard 5x5 matrix where B=Col0, I=Col1, N=Col2, G=Col3, O=Col4
 function generateBingoCard(cardId) {
     const numericId = parseInt(cardId, 10);
     const seed = numericId * 1000;
+    
     const getCol = (min, max, offset) => {
         let nums = [];
         for (let i = min; i <= max; i++) nums.push(i);
@@ -28,20 +30,19 @@ function generateBingoCard(cardId) {
     let g = getCol(46, 60, 4);
     let o = getCol(61, 75, 5);
 
-    n[2] = "FREE";
+    n[2] = "FREE"; // Center Free Space
 
     let matrix = [];
-    for (let row = 0; row < 5; row++) {
-        matrix.push([b[row], i[row], n[row], g[row], o[row]]);
+    for (let r = 0; r < 5; r++) {
+        matrix.push([b[r], i[r], n[r], g[r], o[r]]);
     }
     return matrix;
 }
 
-// Strictly requires ALL 5 items in a line or 4 corners to be present in calledNumbers
+// Check standard Bingo rules (Requires 5 marked tiles in a valid line or 4 corners)
 function checkBingoWin(matrix, calledNumbers) {
     if (!matrix || !Array.isArray(matrix)) return false;
 
-    // Convert all called numbers to standard numbers
     const calledSet = new Set(calledNumbers.map(n => Number(n)));
 
     const isMarked = (val) => {
@@ -49,33 +50,31 @@ function checkBingoWin(matrix, calledNumbers) {
         return calledSet.has(Number(val));
     };
 
-    // 1. Horizontal Rows (Must have 5/5)
+    // 1. Check Horizontal Rows (5 matched)
     for (let r = 0; r < 5; r++) {
-        if (
-            isMarked(matrix[r][0]) &&
-            isMarked(matrix[r][1]) &&
-            isMarked(matrix[r][2]) &&
-            isMarked(matrix[r][3]) &&
-            isMarked(matrix[r][4])
-        ) {
-            return true;
+        let win = true;
+        for (let c = 0; c < 5; c++) {
+            if (!isMarked(matrix[r][c])) {
+                win = false;
+                break;
+            }
         }
+        if (win) return true;
     }
 
-    // 2. Vertical Columns (Must have 5/5)
+    // 2. Check Vertical Columns (5 matched)
     for (let c = 0; c < 5; c++) {
-        if (
-            isMarked(matrix[0][c]) &&
-            isMarked(matrix[1][c]) &&
-            isMarked(matrix[2][c]) &&
-            isMarked(matrix[3][c]) &&
-            isMarked(matrix[4][c])
-        ) {
-            return true;
+        let win = true;
+        for (let r = 0; r < 5; r++) {
+            if (!isMarked(matrix[r][c])) {
+                win = false;
+                break;
+            }
         }
+        if (win) return true;
     }
 
-    // 3. Diagonal Top-Left to Bottom-Right (Must have 5/5)
+    // 3. Diagonal Top-Left to Bottom-Right
     if (
         isMarked(matrix[0][0]) &&
         isMarked(matrix[1][1]) &&
@@ -86,7 +85,7 @@ function checkBingoWin(matrix, calledNumbers) {
         return true;
     }
 
-    // 4. Diagonal Top-Right to Bottom-Left (Must have 5/5)
+    // 4. Diagonal Top-Right to Bottom-Left
     if (
         isMarked(matrix[0][4]) &&
         isMarked(matrix[1][3]) &&
