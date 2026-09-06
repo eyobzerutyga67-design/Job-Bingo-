@@ -8,7 +8,6 @@ const server = http.createServer(app);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Generate standard 5x5 matrix
 function generateBingoCard(cardId) {
     const seed = cardId * 1000;
     const getCol = (min, max, offset) => {
@@ -37,13 +36,12 @@ function generateBingoCard(cardId) {
     return matrix;
 }
 
-// Check standard Bingo rules (Row, Column, Diagonal, 4 Corners)
 function checkBingoWin(matrix, calledNumbers) {
     if (!matrix || !Array.isArray(matrix)) return false;
 
     const isMarked = (val) => val === 'FREE' || val === 'F' || calledNumbers.includes(val);
 
-    // 1. Horizontal Rows (5 in a horizontal line)
+    // 1. Horizontal Rows
     for (let r = 0; r < 5; r++) {
         let rowWin = true;
         for (let c = 0; c < 5; c++) {
@@ -55,7 +53,7 @@ function checkBingoWin(matrix, calledNumbers) {
         if (rowWin) return true;
     }
 
-    // 2. Vertical Columns (5 in a vertical line)
+    // 2. Vertical Columns
     for (let c = 0; c < 5; c++) {
         let colWin = true;
         for (let r = 0; r < 5; r++) {
@@ -67,7 +65,7 @@ function checkBingoWin(matrix, calledNumbers) {
         if (colWin) return true;
     }
 
-    // 3. Diagonal (Top-Left to Bottom-Right)
+    // 3. Main Diagonal
     let diag1 = true;
     for (let i = 0; i < 5; i++) {
         if (!isMarked(matrix[i][i])) {
@@ -77,7 +75,7 @@ function checkBingoWin(matrix, calledNumbers) {
     }
     if (diag1) return true;
 
-    // 4. Diagonal (Top-Right to Bottom-Left)
+    // 4. Anti-Diagonal
     let diag2 = true;
     for (let i = 0; i < 5; i++) {
         if (!isMarked(matrix[i][4 - i])) {
@@ -149,7 +147,6 @@ setInterval(() => {
 
             gameState.currentBall = { letter, number: nextNum };
 
-            // Check if any registered user card has a valid pattern
             let foundWinner = false;
             for (let cardId in gameState.userCards) {
                 const matrix = gameState.userCards[cardId];
@@ -167,7 +164,6 @@ setInterval(() => {
                 }
             }
 
-            // End game without declaring a winner if all 75 balls are drawn with no completed patterns
             if (!foundWinner && remainingBalls.length === 0) {
                 gameState.status = 'WAITING';
                 gameState.timer = 30;
@@ -222,5 +218,9 @@ app.post('/api/game/select-card', (req, res) => {
     res.json({ success: true, userCards: gameState.userCards });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+    server.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+}
+
+module.exports = { checkBingoWin, generateBingoCard };
