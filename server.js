@@ -37,7 +37,7 @@ function generateBingoCard(cardId) {
     return matrix;
 }
 
-// Strict Winning Pattern Validation
+// Strict Bingo Pattern Checking (Must be complete line/corner)
 function checkBingoWin(matrix, calledNumbers) {
     if (!matrix || !Array.isArray(matrix)) return false;
 
@@ -111,14 +111,15 @@ let gameState = {
     userCards: {}
 };
 
-let remainingBalls = Array.from({ length: 75 }, (_, i) => i + 1);
+let remainingBalls = [];
 
 function shuffle(array) {
-    for (let i = array.length - 1; i > 0; i--) {
+    let arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+        [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    return array;
+    return arr;
 }
 
 setInterval(() => {
@@ -148,6 +149,8 @@ setInterval(() => {
 
             gameState.currentBall = { letter, number: nextNum };
 
+            // Check if any card has hit a REAL complete Bingo pattern
+            let foundWinner = false;
             for (let cardId in gameState.userCards) {
                 const matrix = gameState.userCards[cardId];
                 if (checkBingoWin(matrix, gameState.calledNumbers)) {
@@ -159,12 +162,29 @@ setInterval(() => {
                         cardMatrix: matrix
                     };
                     gameState.timer = 10;
+                    foundWinner = true;
                     break;
                 }
+            }
+
+            // If no balls left and no winner found, end game cleanly
+            if (!foundWinner && remainingBalls.length === 0) {
+                gameState.status = 'WAITING';
+                gameState.timer = 30;
+                gameState.winner = null;
+                gameState.calledNumbers = [];
+                gameState.userCards = {};
+                gameState.playersCount = 0;
+                gameState.derash = 0;
             }
         } else {
             gameState.status = 'WAITING';
             gameState.timer = 30;
+            gameState.winner = null;
+            gameState.calledNumbers = [];
+            gameState.userCards = {};
+            gameState.playersCount = 0;
+            gameState.derash = 0;
         }
     } else if (gameState.status === 'WINNER') {
         gameState.timer--;
