@@ -2,74 +2,202 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Bingo</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Best Bingo</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; user-select: none; }
+        body { background-color: #0b111e; color: #ffffff; padding: 12px; }
+        
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .btn-refresh { background: #162a45; color: #00d2ff; border: 1px solid #00d2ff; padding: 6px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .balance { color: #00ff66; font-weight: bold; font-size: 15px; }
+        .banner-alert { background: #5c4400; color: #ffeb3b; padding: 6px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+        .stat-card { background: #131c2e; padding: 8px 4px; border-radius: 8px; text-align: center; border: 1px solid #1f2c45; }
+        .stat-label { font-size: 11px; color: #8a99ad; margin-bottom: 4px; }
+        .stat-value { font-size: 14px; font-weight: bold; color: #ffffff; }
+
+        .nav-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        .nav-btn { background: #131c2e; color: #8a99ad; padding: 10px; border: 1px solid #1f2c45; border-radius: 8px; font-weight: bold; text-align: center; cursor: pointer; }
+        .nav-btn.active { background: #0088cc; color: #ffffff; border-color: #0088cc; }
+        .nav-btn.disabled { opacity: 0.4; pointer-events: none; }
+
+        .status-banner { background: #0f2438; border: 1px solid #0088cc; text-align: center; padding: 10px; border-radius: 8px; font-weight: bold; color: #00d2ff; margin-bottom: 12px; font-size: 15px; }
+
+        /* Ball Call Display */
+        .call-display { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 12px; min-height: 48px; }
+        .ball-badge { display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 20px; font-size: 18px; font-weight: bold; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        .ball-B { background: #2e7d32; color: #fff; } /* Green */
+        .ball-I { background: #fbc02d; color: #000; } /* Yellow */
+        .ball-N { background: #c62828; color: #fff; } /* Red */
+        .ball-G { background: #1565c0; color: #fff; } /* Blue */
+        .ball-O { background: #2e7d32; color: #fff; } /* Green */
+
+        /* Grid Layout */
+        .cards-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; background: #131c2e; padding: 8px; border-radius: 8px; }
+        .card-item { background: #1c283d; border-radius: 4px; text-align: center; padding: 10px 0; font-size: 12px; font-weight: bold; color: #cbd5e1; cursor: pointer; }
+        .card-item.selected { background: #0088cc; color: #fff; border: 1px solid #00d2ff; }
+        .card-item.called { background: #2e7d32 !important; color: #fff !important; }
+
+        /* Modal Popup */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
+        .modal-content { background: #131c2e; border: 2px solid #0088cc; padding: 24px; border-radius: 12px; text-align: center; max-width: 80%; }
+        .modal-title { font-size: 20px; font-weight: bold; color: #00ff66; margin-bottom: 10px; }
+        .modal-desc { font-size: 14px; color: #ffffff; margin-bottom: 15px; }
+        .modal-btn { background: #0088cc; color: #fff; border: none; padding: 8px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    </style>
 </head>
 <body>
 
     <div class="top-bar">
-        <button class="btn-refresh" onclick="location.reload()">REFRESH</button>
-        <div class="balance-box">BALANCE:<br><span class="balance-amt">0 ETB</span></div>
-        <div class="ticker-pill">ስአት ገላው 1000 ቦነስ አ</div>
+        <button class="btn-refresh" onclick="fetchState()">REFRESH</button>
+        <div class="balance">BALANCE: 0 ETB</div>
+        <div class="banner-alert">ስአት ገላዉ 1000 ሶስ አ</div>
     </div>
 
-    <div class="stats-row">
-        <div class="stat-card">Derash<div class="stat-val" id="derashVal">0 ETB</div></div>
-        <div class="stat-card">Players<div class="stat-val" id="playersVal">0</div></div>
-        <div class="stat-card">Stake<div class="stat-val">10 ETB</div></div>
-        <div class="stat-card">Call<div class="stat-val" id="callCount">0/75</div></div>
-    </div>
-
-    <div class="view-toggle">
-        <button id="btnPickView" class="toggle-btn active" onclick="switchView('pick')">Pick Cards (1-500)</button>
-        <button id="btnGameView" class="toggle-btn" onclick="switchView('game')">Live Game</button>
-    </div>
-
-    <div id="statusBanner" class="status-banner">Next Round in: <span id="timerVal">40</span>s</div>
-
-    <!-- 1-500 Scrollable Grid -->
-    <div id="viewPick" class="card-picker-grid"></div>
-
-    <!-- Live Board View -->
-    <div id="viewGame" class="game-main-view" style="display: none;">
-        <div class="vertical-board">
-            <div class="v-header-row">
-                <span>B</span><span>I</span><span>N</span><span>G</span><span>O</span>
-            </div>
-            <div id="vBoardGrid" class="v-grid"></div>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Derash</div>
+            <div class="stat-value" id="ui-derash">0 ETB</div>
         </div>
-        <div class="right-controls">
-            <div id="ballCallBox" class="ball-call-lg">B--</div>
-            <div class="auto-toggle-box">
-                <span>AUTO</span>
-                <input type="checkbox" checked>
-            </div>
-            <div class="wait-msg">
-                የዚህ ዙር ጨዋታ ተጀምሯል። አዲስ ዙር እስኪጀምር እዚህ ይጠበቁ።
-            </div>
+        <div class="stat-card">
+            <div class="stat-label">Players</div>
+            <div class="stat-value" id="ui-players">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Stake</div>
+            <div class="stat-value">10 ETB</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Call</div>
+            <div class="stat-value" id="ui-call">0/75</div>
         </div>
     </div>
 
-    <!-- Winner Card Modal -->
-    <div id="winnerModal" class="modal" style="display: none;">
-        <div class="winner-card-box">
-            <div class="winner-title">🏆 BINGO!</div>
-            <div class="winner-sub"><span id="winPlayer">aemro (*9025)</span> won!</div>
-            
-            <div class="modal-grid-header">
-                <span style="color:#ff9800">B</span><span style="color:#4caf50">I</span><span style="color:#2196f3">N</span><span style="color:#ff9800">G</span><span style="color:#9c27b0">O</span>
-            </div>
-            <div id="modalCardGrid" class="modal-grid"></div>
+    <div class="nav-buttons">
+        <div class="nav-btn active" id="tab-pick" onclick="switchTab('pick')">Pick Cards (1-500)</div>
+        <div class="nav-btn" id="tab-live" onclick="switchTab('live')">Live Game</div>
+    </div>
 
-            <div class="modal-footer">
-                <span id="winPrize">Prize: 152 ETB</span>
-                <span id="winCardNo">Card# 9</span>
-            </div>
-            <div class="win-countdown">Next Game in: <span id="winTimer">10</span>s</div>
+    <div class="status-banner" id="ui-status">Next Round in: 40s</div>
+
+    <div class="call-display" id="ui-ball-container"></div>
+
+    <div class="cards-grid" id="ui-cards-container"></div>
+
+    <div class="modal" id="winner-modal">
+        <div class="modal-content">
+            <div class="modal-title">🎉 BINGO WINNER! 🎉</div>
+            <div class="modal-desc" id="winner-text"></div>
+            <button class="modal-btn" onclick="closeModal()">OK</button>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script>
+        let currentTab = 'pick';
+        let userSelectedCards = [];
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-pick').classList.toggle('active', tab === 'pick');
+            document.getElementById('tab-live').classList.toggle('active', tab === 'live');
+            renderCardsGrid();
+        }
+
+        function closeModal() {
+            document.getElementById('winner-modal').style.display = 'none';
+        }
+
+        async function selectCard(cardId) {
+            const res = await fetch('/api/game/select-card', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cardId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                userSelectedCards = data.selectedCards;
+                fetchState();
+            }
+        }
+
+        async function fetchState() {
+            try {
+                const res = await fetch('/api/game/state');
+                const data = await res.json();
+                
+                document.getElementById('ui-derash').innerText = `${data.derash} ETB`;
+                document.getElementById('ui-players').innerText = data.playersCount;
+                document.getElementById('ui-call').innerText = `${data.calledNumbers.length}/75`;
+
+                const statusEl = document.getElementById('ui-status');
+                const ballContainer = document.getElementById('ui-ball-container');
+                const pickTab = document.getElementById('tab-pick');
+                const liveTab = document.getElementById('tab-live');
+
+                if (data.status === 'WAITING') {
+                    statusEl.innerText = `Next Round in: ${data.timer}s`;
+                    ballContainer.innerHTML = '';
+                    pickTab.classList.remove('disabled');
+                } else if (data.status === 'CALCULATING') {
+                    statusEl.innerText = `Calculating Players & Assigning Cards... (${data.timer}s)`;
+                    pickTab.classList.add('disabled');
+                    switchTab('live');
+                } else if (data.status === 'PLAYING') {
+                    statusEl.innerText = `🎮 GAME IN PROGRESS`;
+                    pickTab.classList.add('disabled');
+                    if (currentTab !== 'live') switchTab('live');
+
+                    if (data.currentBall) {
+                        const ball = data.currentBall;
+                        ballContainer.innerHTML = `
+                            <div class="ball-badge ball-${ball.letter}">
+                                ${ball.color} ${ball.letter}-${ball.number}
+                            </div>
+                        `;
+                    }
+                } else if (data.status === 'WINNER') {
+                    statusEl.innerText = `🏆 ROUND FINISHED`;
+                    if (data.winner) {
+                        document.getElementById('winner-text').innerText = 
+                            `Player: ${data.winner.player}\nCard ID: #${data.winner.cardId}\nPrize: ${data.winner.prize} ETB`;
+                        document.getElementById('winner-modal').style.display = 'flex';
+                    }
+                }
+
+                renderCardsGrid(data.calledNumbers);
+            } catch (err) {
+                console.error("Fetch state error:", err);
+            }
+        }
+
+        function renderCardsGrid(calledNumbers = []) {
+            const container = document.getElementById('ui-cards-container');
+            container.innerHTML = '';
+
+            // Generate card slots 1 through 100
+            for (let i = 1; i <= 100; i++) {
+                const card = document.createElement('div');
+                card.className = 'card-item';
+                card.innerText = i;
+
+                if (userSelectedCards.includes(i)) {
+                    card.classList.add('selected');
+                }
+
+                if (calledNumbers.includes(i)) {
+                    card.classList.add('called');
+                }
+
+                card.onclick = () => selectCard(i);
+                container.appendChild(card);
+            }
+        }
+
+        setInterval(fetchState, 1000);
+        fetchState();
+    </script>
 </body>
 </html>
