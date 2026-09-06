@@ -8,7 +8,6 @@ const server = http.createServer(app);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Synchronized Card Generation Algorithm (Matches frontend exactly)
 function generateBingoCard(cardId) {
     const seed = cardId * 1000;
     const getCol = (min, max, offset) => {
@@ -37,7 +36,6 @@ function generateBingoCard(cardId) {
     return matrix;
 }
 
-// Strict Bingo Pattern Checker (Row, Col, Diagonals, 4 Corners)
 function checkBingoWin(matrix, calledNumbers) {
     if (!matrix || !Array.isArray(matrix)) return false;
 
@@ -88,21 +86,19 @@ function checkBingoWin(matrix, calledNumbers) {
     return false;
 }
 
-// Game State Storage
 let gameState = {
-    status: 'WAITING', // WAITING, CALCULATING, PLAYING, WINNER
+    status: 'WAITING',
     timer: 30,
     derash: 0,
     playersCount: 0,
     calledNumbers: [],
     currentBall: null,
     winner: null,
-    userCards: {} // Stores active user cards
+    userCards: {}
 };
 
 let remainingBalls = Array.from({ length: 75 }, (_, i) => i + 1);
 
-// Shuffle Utility
 function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -111,7 +107,6 @@ function shuffle(array) {
     return array;
 }
 
-// Game Loop Timer
 setInterval(() => {
     if (gameState.status === 'WAITING') {
         gameState.timer--;
@@ -139,7 +134,6 @@ setInterval(() => {
 
             gameState.currentBall = { letter, number: nextNum };
 
-            // Check all selected active cards for wins
             for (let cardId in gameState.userCards) {
                 const matrix = gameState.userCards[cardId];
                 if (checkBingoWin(matrix, gameState.calledNumbers)) {
@@ -172,7 +166,6 @@ setInterval(() => {
     }
 }, 1000);
 
-// API Endpoints
 app.get('/api/game/state', (req, res) => {
     res.json(gameState);
 });
