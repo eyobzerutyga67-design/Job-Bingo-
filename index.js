@@ -29,11 +29,39 @@ let gameState = {
     derash: 0,
     currentBall: null,
     calledNumbers: [],
-    selectedCards: [],
+    userCards: {}, // Stores user-selected card IDs & generated 5x5 matrices
     winner: null,
-    // Assigns ball colors B(🟢), I(🟡), N(🔴), G(🔵), O(🟢)
     ballColors: { B: "🟢", I: "🟡", N: "🔴", G: "🔵", O: "🟢" }
 };
+
+// Deterministic 5x5 Bingo Card Generator for IDs 1-500
+function generateBingoCard(cardId) {
+    const seed = cardId * 1000;
+    const getCol = (min, max, offset) => {
+        let nums = [];
+        for (let i = min; i <= max; i++) nums.push(i);
+        let result = [];
+        for (let i = 0; i < 5; i++) {
+            let idx = (seed + offset + i * 7) % nums.length;
+            result.push(nums.splice(idx, 1)[0]);
+        }
+        return result;
+    };
+
+    let b = getCol(1, 15, 1);
+    let i = getCol(16, 30, 2);
+    let n = getCol(31, 45, 3);
+    let g = getCol(46, 60, 4);
+    let o = getCol(61, 75, 5);
+
+    n[2] = "FREE"; // Center Free Slot
+
+    let matrix = [];
+    for (let row = 0; row < 5; row++) {
+        matrix.push([b[row], i[row], n[row], g[row], o[row]]);
+    }
+    return matrix;
+}
 
 function getBallInfo(num) {
     if (!num) return null;
@@ -57,20 +85,19 @@ function resetGame() {
     gameState.timer = 40;
     gameState.currentBall = null;
     gameState.calledNumbers = [];
-    gameState.selectedCards = [];
+    gameState.userCards = {};
     gameState.winner = null;
     gameState.derash = 0;
     gameState.playersCount = 0;
 }
 
-// Master Game Loop (1-Second Engine)
+// 1-Second Master Loop
 setInterval(() => {
     try {
         if (gameState.status === "WAITING") {
             if (gameState.timer > 0) {
                 gameState.timer--;
             } else {
-                // 40 seconds reached -> Move to 5s calculation phase
                 gameState.status = "CALCULATING";
                 gameState.timer = 5;
             }
@@ -78,14 +105,14 @@ setInterval(() => {
             if (gameState.timer > 0) {
                 gameState.timer--;
             } else {
-                // If player didn't pick a card, automatically assign one
-                if (gameState.selectedCards.length === 0) {
-                    const autoPickedCard = Math.floor(Math.random() * 100) + 1;
-                    gameState.selectedCards.push(autoPickedCard);
+                // Auto-assign 1 card if user selected 0 cards
+                const cardKeys = Object.keys(gameState.userCards);
+                if (cardKeys.length === 0) {
+                    const autoId = Math.floor(Math.random() * 500) + 1;
+                    gameState.userCards[autoId] = generateBingoCard(autoId);
                     gameState.derash += gameState.stake;
                     gameState.playersCount = 1;
                 }
-                // Calculation finished -> Start live game
                 gameState.status = "PLAYING";
                 gameState.timer = 0;
             }
@@ -99,20 +126,23 @@ setInterval(() => {
                 gameState.calledNumbers.push(nextNum);
                 gameState.currentBall = getBallInfo(nextNum);
 
-                // Simulation: Win condition triggered after 8 called numbers
                 if (gameState.calledNumbers.length >= 8) {
+                    const activeCards = Object.keys(gameState.userCards);
+                    const winningCardId = activeCards[0] || 65;
+
                     gameState.status = "WINNER";
                     gameState.timer = 10;
                     gameState.winner = {
                         player: "aemro (*9025)",
-                        prize: gameState.derash > 0 ? gameState.derash : 152,
-                        cardId: gameState.selectedCards[0] || 9
+                        prize: gameState.derash > 0 ? gameState.derash : 30,
+                        cardId: winningCardId,
+                        cardMatrix: gameState.userCards[winningCardId] || generateBingoCard(winningCardId)
                     };
                 }
             } else {
                 gameState.status = "WINNER";
                 gameState.timer = 10;
-                gameState.winner = { player: "House (*0000)", prize: 0, cardId: 1 };
+                gameState.winner = { player: "House (*0000)", prize: 0, cardId: 1, cardMatrix: generateBingoCard(1) };
             }
         } else if (gameState.status === "WINNER") {
             if (gameState.timer > 0) {
@@ -126,12 +156,12 @@ setInterval(() => {
     }
 }, 1000);
 
-// Keep alive service ping
+// Keep-Alive Self-Ping
 setInterval(() => {
     https.get(WEB_APP_URL, (res) => {}).on('error', () => {});
 }, 4 * 60 * 1000);
 
-// Telegram Command Handlers
+// Telegram Commands
 function sendLobbyMenu(ctx) {
     const freshUrl = `${WEB_APP_URL}?v=${Date.now()}`;
     return ctx.reply('🎮 *Welcome to Best Bingo!*', {
@@ -145,7 +175,7 @@ function sendLobbyMenu(ctx) {
 bot.start((ctx) => sendLobbyMenu(ctx));
 bot.command('play', (ctx) => sendLobbyMenu(ctx));
 
-// API Endpoints for Web App
+// API Endpoints
 app.get('/api/game/state', (req, res) => res.json(gameState));
 
 app.post('/api/game/select-card', (req, res) => {
@@ -153,18 +183,26 @@ app.post('/api/game/select-card', (req, res) => {
     if (gameState.status !== "WAITING") {
         return res.json({ success: false, message: "Selection closed" });
     }
-    if (!gameState.selectedCards.includes(cardId)) {
-        gameState.selectedCards.push(cardId);
-        gameState.derash += gameState.stake;
-        gameState.playersCount = gameState.selectedCards.length;
+    const currentKeys = Object.keys(gameState.userCards);
+    if (currentKeys.length >= 4 && !gameState.userCards[cardId]) {
+        return res.json({ success: false, message: "Maximum 4 cards allowed per game" });
     }
-    res.json({ success: true, selectedCards: gameState.selectedCards, derash: gameState.derash });
+
+    if (gameState.userCards[cardId]) {
+        delete gameState.userCards[cardId];
+        gameState.derash -= gameState.stake;
+    } else {
+        gameState.userCards[cardId] = generateBingoCard(cardId);
+        gameState.derash += gameState.stake;
+    }
+
+    gameState.playersCount = Object.keys(gameState.userCards).length;
+    res.json({ success: true, userCards: gameState.userCards, derash: gameState.derash });
 });
 
-// Launch listener and web server
+// Start express server
 app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
-    
     bot.launch({ dropPendingUpdates: true })
         .then(() => console.log('>>> Telegram Bot Listener is LIVE! <<<'))
         .catch(err => console.error('Telegram Bot Launch Error:', err));
