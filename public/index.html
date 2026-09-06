@@ -26,10 +26,16 @@
 
         .status-banner { background: #0f2438; border: 1px solid #0088cc; text-align: center; padding: 10px; border-radius: 8px; font-weight: bold; color: #00d2ff; margin-bottom: 12px; font-size: 15px; }
 
-        /* Caller 75 Grid + Ball Display */
         .live-top-section { display: none; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; align-items: center; }
         .caller-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background: #131c2e; padding: 6px; border-radius: 8px; border: 1px solid #1f2c45; }
-        .caller-header { font-size: 10px; font-weight: bold; text-align: center; color: #8a99ad; padding: 2px 0; }
+        
+        .caller-header { font-size: 11px; font-weight: 900; text-align: center; padding: 2px 0; }
+        .head-B { color: #ef4444 !important; }
+        .head-I { color: #3b82f6 !important; }
+        .head-N { color: #eab308 !important; }
+        .head-G { color: #22c55e !important; }
+        .head-O { color: #a855f7 !important; }
+
         .caller-cell { font-size: 9px; font-weight: bold; text-align: center; background: #1c283d; color: #57687c; padding: 3px 0; border-radius: 2px; }
         .caller-cell.called { background: #0088cc; color: #ffffff; }
 
@@ -44,21 +50,19 @@
         input:checked + .slider { background-color: #00ff66; }
         input:checked + .slider:before { transform: translateX(18px); }
 
-        /* 1-500 Cards Picker Grid */
-        .cards-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; background: #131c2e; padding: 8px; border-radius: 8px; max-height: 380px; overflow-y: auto; }
-        .card-item { background: #1c283d; border-radius: 4px; text-align: center; padding: 10px 0; font-size: 11px; font-weight: bold; color: #cbd5e1; cursor: pointer; }
-        .card-item.selected { background: #0088cc; color: #fff; border: 1px solid #00d2ff; }
+        .picker-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-height: 480px; overflow-y: auto; }
+        .full-card-item { background: #131c2e; border: 1px solid #1f2c45; border-radius: 8px; padding: 8px; cursor: pointer; }
+        .full-card-item.selected { border: 2px solid #0088cc; background: #0f2438; }
+        .full-card-title { text-align: center; font-size: 12px; font-weight: bold; color: #00d2ff; margin-bottom: 4px; }
+        
+        .mini-bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+        .mini-cell { background: #1c283d; color: #cbd5e1; font-size: 10px; font-weight: bold; text-align: center; padding: 6px 0; border-radius: 3px; }
+        .mini-cell.free { background: #eab308; color: #000; font-size: 8px; }
 
-        /* 5x5 Live Bingo Boards */
-        .boards-container { display: none; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .boards-container { display: none; grid-template-columns: repeat(2, 1fr); gap: 10px; }
         .bingo-board { background: #131c2e; padding: 8px; border-radius: 8px; border: 1px solid #1f2c45; }
         .board-title { text-align: center; color: #8a99ad; font-weight: bold; margin-bottom: 4px; font-size: 12px; }
-        .bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
-        .bingo-cell { background: #1c283d; padding: 8px 0; border-radius: 4px; text-align: center; font-weight: bold; font-size: 11px; color: #ffffff; }
-        .bingo-cell.marked { background: #15803d; color: #00ff66; }
-        .bingo-cell.free { background: #eab308; color: #000000; font-size: 9px; }
 
-        /* Winner Screen Popup Modal */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 99; }
         .winner-card-box { background: #1e1b2e; border: 2px solid #8b5cf6; padding: 16px; border-radius: 16px; text-align: center; width: 88%; max-width: 340px; box-shadow: 0 0 25px rgba(139, 92, 246, 0.4); }
         .winner-title { font-size: 22px; font-weight: 900; color: #ffffff; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -67,9 +71,9 @@
         .winner-bingo-header { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; text-align: center; font-weight: 900; font-size: 14px; margin-bottom: 6px; }
         .winner-bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 12px; }
         .winner-cell { padding: 10px 0; border-radius: 6px; font-weight: bold; font-size: 13px; text-align: center; color: #ffffff; }
-        .winner-cell.hit { background: #ef4444; }
-        .winner-cell.miss { background: #22c55e; }
-        .winner-cell.free { background: #22c55e; color: #ffffff; }
+        .winner-cell.called { background: #22c55e; }
+        .winner-cell.uncalled { background: #1c283d; color: #8a99ad; }
+        .winner-cell.free { background: #eab308; color: #000000; }
 
         .winner-footer { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 14px; margin-bottom: 8px; }
         .prize-text { color: #4ade80; }
@@ -111,7 +115,6 @@
 
     <div class="status-banner" id="ui-status">Next Round in: 40s</div>
 
-    <!-- Live Game Top Area with 75 Caller Grid & AUTO Toggle -->
     <div class="live-top-section" id="ui-live-top">
         <div class="caller-grid" id="ui-caller-grid"></div>
         <div class="ball-and-auto">
@@ -126,21 +129,20 @@
         </div>
     </div>
 
-    <div class="cards-grid" id="ui-cards-container"></div>
+    <div class="picker-container" id="ui-cards-container"></div>
     <div class="boards-container" id="ui-boards-container"></div>
 
-    <!-- Winner Modal Overlay -->
     <div class="modal" id="winner-modal">
         <div class="winner-card-box">
             <div class="winner-title">🏆 BINGO!</div>
             <div class="winner-tag" id="win-player-name">aemro (*9025) won!</div>
             
             <div class="winner-bingo-header">
-                <span style="color: #f97316;">B</span>
-                <span style="color: #3b82f6;">I</span>
-                <span style="color: #3b82f6;">N</span>
-                <span style="color: #f97316;">G</span>
-                <span style="color: #a855f7;">O</span>
+                <span class="head-B">B</span>
+                <span class="head-I">I</span>
+                <span class="head-N">N</span>
+                <span class="head-G">G</span>
+                <span class="head-O">O</span>
             </div>
 
             <div class="winner-bingo-grid" id="win-card-grid"></div>
@@ -156,6 +158,34 @@
     <script>
         let currentTab = 'pick';
         let userCardsData = {};
+
+        function generateBingoCard(cardId) {
+            const seed = cardId * 1000;
+            const getCol = (min, max, offset) => {
+                let nums = [];
+                for (let i = min; i <= max; i++) nums.push(i);
+                let result = [];
+                for (let i = 0; i < 5; i++) {
+                    let idx = (seed + offset + i * 7) % nums.length;
+                    result.push(nums.splice(idx, 1)[0]);
+                }
+                return result;
+            };
+
+            let b = getCol(1, 15, 1);
+            let i = getCol(16, 30, 2);
+            let n = getCol(31, 45, 3);
+            let g = getCol(46, 60, 4);
+            let o = getCol(61, 75, 5);
+
+            n[2] = "FREE";
+
+            let matrix = [];
+            for (let row = 0; row < 5; row++) {
+                matrix.push([b[row], i[row], n[row], g[row], o[row]]);
+            }
+            return matrix;
+        }
 
         function switchTab(tab) {
             currentTab = tab;
@@ -227,7 +257,7 @@
                     }
                 }
 
-                renderCardsGrid();
+                renderFullCardsGrid();
                 renderCallerGrid(data.calledNumbers);
                 renderLiveBingoBoards(data.calledNumbers);
             } catch (err) {
@@ -239,9 +269,10 @@
             const grid = document.getElementById('ui-caller-grid');
             grid.innerHTML = '';
             
-            ['B','I','N','G','O'].forEach(h => {
+            const headers = ['B','I','N','G','O'];
+            headers.forEach(h => {
                 const header = document.createElement('div');
-                header.className = 'caller-header';
+                header.className = `caller-header head-${h}`;
                 header.innerText = h;
                 grid.appendChild(header);
             });
@@ -257,18 +288,41 @@
             }
         }
 
-        function renderCardsGrid() {
+        function renderFullCardsGrid() {
             const container = document.getElementById('ui-cards-container');
+            if (container.children.length > 0) {
+                const selectedKeys = Object.keys(userCardsData).map(Number);
+                for (let i = 1; i <= 500; i++) {
+                    const el = document.getElementById(`ground-card-${i}`);
+                    if (el) {
+                        el.classList.toggle('selected', selectedKeys.includes(i));
+                    }
+                }
+                return;
+            }
+
             container.innerHTML = '';
             const selectedKeys = Object.keys(userCardsData).map(Number);
 
             for (let i = 1; i <= 500; i++) {
-                const card = document.createElement('div');
-                card.className = 'card-item';
-                card.innerText = i;
-                if (selectedKeys.includes(i)) card.classList.add('selected');
-                card.onclick = () => selectCard(i);
-                container.appendChild(card);
+                const cardDiv = document.createElement('div');
+                cardDiv.id = `ground-card-${i}`;
+                cardDiv.className = 'full-card-item' + (selectedKeys.includes(i) ? ' selected' : '');
+                cardDiv.onclick = () => selectCard(i);
+
+                const matrix = generateBingoCard(i);
+                let innerHTML = `<div class="full-card-title">Card #${i}</div><div class="mini-bingo-grid">`;
+
+                for (let r = 0; r < 5; r++) {
+                    for (let c = 0; c < 5; c++) {
+                        const val = matrix[r][c];
+                        const cellClass = val === 'FREE' ? 'mini-cell free' : 'mini-cell';
+                        innerHTML += `<div class="${cellClass}">${val}</div>`;
+                    }
+                }
+                innerHTML += `</div>`;
+                cardDiv.innerHTML = innerHTML;
+                container.appendChild(cardDiv);
             }
         }
 
@@ -282,14 +336,14 @@
                 const boardDiv = document.createElement('div');
                 boardDiv.className = 'bingo-board';
 
-                let boardHTML = `<div class="board-title">Card #${cardId}</div><div class="bingo-grid">`;
+                let boardHTML = `<div class="board-title">Card #${cardId}</div><div class="mini-bingo-grid">`;
 
                 for (let r = 0; r < 5; r++) {
                     for (let c = 0; c < 5; c++) {
                         const val = matrix[r][c];
                         let isAuto = document.getElementById('auto-toggle').checked;
                         let isMarked = val === 'FREE' || (isAuto && calledNumbers.includes(val));
-                        let cellClass = val === 'FREE' ? 'bingo-cell free' : (isMarked ? 'bingo-cell marked' : 'bingo-cell');
+                        let cellClass = val === 'FREE' ? 'mini-cell free' : (isMarked ? 'mini-cell marked' : 'mini-cell');
                         boardHTML += `<div class="${cellClass}">${val}</div>`;
                     }
                 }
@@ -317,10 +371,10 @@
                         cell.className = 'winner-cell free';
                         cell.innerText = 'F';
                     } else if (calledNumbers.includes(val)) {
-                        cell.className = 'winner-cell miss';
+                        cell.className = 'winner-cell called';
                         cell.innerText = val;
                     } else {
-                        cell.className = 'winner-cell hit';
+                        cell.className = 'winner-cell uncalled';
                         cell.innerText = val;
                     }
                     grid.appendChild(cell);
