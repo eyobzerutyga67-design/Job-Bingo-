@@ -50,9 +50,15 @@
         input:checked + .slider { background-color: #00ff66; }
         input:checked + .slider:before { transform: translateX(18px); }
 
-        .picker-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-height: 480px; overflow-y: auto; }
-        .full-card-item { background: #131c2e; border: 1px solid #1f2c45; border-radius: 8px; padding: 8px; cursor: pointer; }
-        .full-card-item.selected { border: 2px solid #0088cc; background: #0f2438; }
+        /* 1-500 Quick Picker Buttons */
+        .picker-section { display: block; }
+        .picker-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; max-height: 220px; overflow-y: auto; background: #131c2e; padding: 8px; border-radius: 8px; border: 1px solid #1f2c45; margin-bottom: 12px; }
+        .card-num-btn { background: #1c283d; color: #cbd5e1; font-weight: bold; font-size: 11px; border-radius: 4px; text-align: center; padding: 8px 0; cursor: pointer; border: 1px solid #283850; }
+        .card-num-btn.selected { background: #0088cc; color: #ffffff; border-color: #00d2ff; }
+
+        /* Selected Full Cards Display Area */
+        .ground-selected-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .full-card-item { background: #131c2e; border: 1px solid #1f2c45; border-radius: 8px; padding: 8px; }
         .full-card-title { text-align: center; font-size: 12px; font-weight: bold; color: #00d2ff; margin-bottom: 4px; }
         
         .mini-bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
@@ -63,6 +69,7 @@
         .bingo-board { background: #131c2e; padding: 8px; border-radius: 8px; border: 1px solid #1f2c45; }
         .board-title { text-align: center; color: #8a99ad; font-weight: bold; margin-bottom: 4px; font-size: 12px; }
 
+        /* Winner Modal */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 99; }
         .winner-card-box { background: #1e1b2e; border: 2px solid #8b5cf6; padding: 16px; border-radius: 16px; text-align: center; width: 88%; max-width: 340px; box-shadow: 0 0 25px rgba(139, 92, 246, 0.4); }
         .winner-title { font-size: 22px; font-weight: 900; color: #ffffff; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -129,9 +136,15 @@
         </div>
     </div>
 
-    <div class="picker-container" id="ui-cards-container"></div>
+    <!-- 1-500 Quick Buttons Grid + Selected Cards Ground Layout -->
+    <div class="picker-section" id="ui-picker-section">
+        <div class="picker-grid" id="ui-numbers-grid"></div>
+        <div class="ground-selected-cards" id="ui-cards-container"></div>
+    </div>
+
     <div class="boards-container" id="ui-boards-container"></div>
 
+    <!-- Winner Overlay -->
     <div class="modal" id="winner-modal">
         <div class="winner-card-box">
             <div class="winner-title">🏆 BINGO!</div>
@@ -193,11 +206,11 @@
             document.getElementById('tab-live').classList.toggle('active', tab === 'live');
             
             if (tab === 'pick') {
-                document.getElementById('ui-cards-container').style.display = 'grid';
+                document.getElementById('ui-picker-section').style.display = 'block';
                 document.getElementById('ui-boards-container').style.display = 'none';
                 document.getElementById('ui-live-top').style.display = 'none';
             } else {
-                document.getElementById('ui-cards-container').style.display = 'none';
+                document.getElementById('ui-picker-section').style.display = 'none';
                 document.getElementById('ui-boards-container').style.display = 'grid';
                 document.getElementById('ui-live-top').style.display = 'grid';
             }
@@ -257,7 +270,8 @@
                     }
                 }
 
-                renderFullCardsGrid();
+                render1To500PickerGrid();
+                renderSelectedCardsGround();
                 renderCallerGrid(data.calledNumbers);
                 renderLiveBingoBoards(data.calledNumbers);
             } catch (err) {
@@ -288,30 +302,41 @@
             }
         }
 
-        function renderFullCardsGrid() {
-            const container = document.getElementById('ui-cards-container');
-            if (container.children.length > 0) {
+        function render1To500PickerGrid() {
+            const grid = document.getElementById('ui-numbers-grid');
+            if (grid.children.length > 0) {
                 const selectedKeys = Object.keys(userCardsData).map(Number);
                 for (let i = 1; i <= 500; i++) {
-                    const el = document.getElementById(`ground-card-${i}`);
-                    if (el) {
-                        el.classList.toggle('selected', selectedKeys.includes(i));
-                    }
+                    const btn = document.getElementById(`btn-card-${i}`);
+                    if (btn) btn.classList.toggle('selected', selectedKeys.includes(i));
                 }
                 return;
             }
 
-            container.innerHTML = '';
+            grid.innerHTML = '';
             const selectedKeys = Object.keys(userCardsData).map(Number);
 
             for (let i = 1; i <= 500; i++) {
-                const cardDiv = document.createElement('div');
-                cardDiv.id = `ground-card-${i}`;
-                cardDiv.className = 'full-card-item' + (selectedKeys.includes(i) ? ' selected' : '');
-                cardDiv.onclick = () => selectCard(i);
+                const btn = document.createElement('div');
+                btn.id = `btn-card-${i}`;
+                btn.className = 'card-num-btn' + (selectedKeys.includes(i) ? ' selected' : '');
+                btn.innerText = i;
+                btn.onclick = () => selectCard(i);
+                grid.appendChild(btn);
+            }
+        }
 
-                const matrix = generateBingoCard(i);
-                let innerHTML = `<div class="full-card-title">Card #${i}</div><div class="mini-bingo-grid">`;
+        function renderSelectedCardsGround() {
+            const container = document.getElementById('ui-cards-container');
+            container.innerHTML = '';
+
+            const selectedKeys = Object.keys(userCardsData).map(Number);
+            selectedKeys.forEach(cardId => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'full-card-item';
+
+                const matrix = generateBingoCard(cardId);
+                let innerHTML = `<div class="full-card-title">Card #${cardId}</div><div class="mini-bingo-grid">`;
 
                 for (let r = 0; r < 5; r++) {
                     for (let c = 0; c < 5; c++) {
@@ -323,7 +348,7 @@
                 innerHTML += `</div>`;
                 cardDiv.innerHTML = innerHTML;
                 container.appendChild(cardDiv);
-            }
+            });
         }
 
         function renderLiveBingoBoards(calledNumbers = []) {
