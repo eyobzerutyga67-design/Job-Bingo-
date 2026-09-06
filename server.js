@@ -9,7 +9,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 function generateBingoCard(cardId) {
-    const seed = cardId * 1000;
+    const numericId = parseInt(cardId, 10);
+    const seed = numericId * 1000;
     const getCol = (min, max, offset) => {
         let nums = [];
         for (let i = min; i <= max; i++) nums.push(i);
@@ -36,56 +37,67 @@ function generateBingoCard(cardId) {
     return matrix;
 }
 
+// Strictly requires ALL 5 items in a line or 4 corners to be present in calledNumbers
 function checkBingoWin(matrix, calledNumbers) {
     if (!matrix || !Array.isArray(matrix)) return false;
 
-    const isMarked = (val) => val === 'FREE' || val === 'F' || calledNumbers.includes(val);
+    // Convert all called numbers to standard numbers
+    const calledSet = new Set(calledNumbers.map(n => Number(n)));
 
-    // 1. Horizontal Rows
+    const isMarked = (val) => {
+        if (val === 'FREE' || val === 'F') return true;
+        return calledSet.has(Number(val));
+    };
+
+    // 1. Horizontal Rows (Must have 5/5)
     for (let r = 0; r < 5; r++) {
-        let rowWin = true;
-        for (let c = 0; c < 5; c++) {
-            if (!isMarked(matrix[r][c])) {
-                rowWin = false;
-                break;
-            }
+        if (
+            isMarked(matrix[r][0]) &&
+            isMarked(matrix[r][1]) &&
+            isMarked(matrix[r][2]) &&
+            isMarked(matrix[r][3]) &&
+            isMarked(matrix[r][4])
+        ) {
+            return true;
         }
-        if (rowWin) return true;
     }
 
-    // 2. Vertical Columns
+    // 2. Vertical Columns (Must have 5/5)
     for (let c = 0; c < 5; c++) {
-        let colWin = true;
-        for (let r = 0; r < 5; r++) {
-            if (!isMarked(matrix[r][c])) {
-                colWin = false;
-                break;
-            }
-        }
-        if (colWin) return true;
-    }
-
-    // 3. Main Diagonal
-    let diag1 = true;
-    for (let i = 0; i < 5; i++) {
-        if (!isMarked(matrix[i][i])) {
-            diag1 = false;
-            break;
+        if (
+            isMarked(matrix[0][c]) &&
+            isMarked(matrix[1][c]) &&
+            isMarked(matrix[2][c]) &&
+            isMarked(matrix[3][c]) &&
+            isMarked(matrix[4][c])
+        ) {
+            return true;
         }
     }
-    if (diag1) return true;
 
-    // 4. Anti-Diagonal
-    let diag2 = true;
-    for (let i = 0; i < 5; i++) {
-        if (!isMarked(matrix[i][4 - i])) {
-            diag2 = false;
-            break;
-        }
+    // 3. Diagonal Top-Left to Bottom-Right (Must have 5/5)
+    if (
+        isMarked(matrix[0][0]) &&
+        isMarked(matrix[1][1]) &&
+        isMarked(matrix[2][2]) &&
+        isMarked(matrix[3][3]) &&
+        isMarked(matrix[4][4])
+    ) {
+        return true;
     }
-    if (diag2) return true;
 
-    // 5. Four Corners
+    // 4. Diagonal Top-Right to Bottom-Left (Must have 5/5)
+    if (
+        isMarked(matrix[0][4]) &&
+        isMarked(matrix[1][3]) &&
+        isMarked(matrix[2][2]) &&
+        isMarked(matrix[3][1]) &&
+        isMarked(matrix[4][0])
+    ) {
+        return true;
+    }
+
+    // 5. Four Outer Corners
     if (
         isMarked(matrix[0][0]) &&
         isMarked(matrix[0][4]) &&
@@ -163,7 +175,6 @@ setInterval(() => {
                     break;
                 }
             }
-            }
 
             if (!foundWinner && remainingBalls.length === 0) {
                 gameState.status = 'WAITING';
@@ -207,10 +218,11 @@ app.post('/api/game/select-card', (req, res) => {
         return res.json({ success: false, message: 'Game in progress. Wait for next round.' });
     }
 
-    if (gameState.userCards[cardId]) {
-        delete gameState.userCards[cardId];
+    const key = String(cardId);
+    if (gameState.userCards[key]) {
+        delete gameState.userCards[key];
     } else {
-        gameState.userCards[cardId] = generateBingoCard(cardId);
+        gameState.userCards[key] = generateBingoCard(key);
     }
 
     gameState.playersCount = Object.keys(gameState.userCards).length > 0 ? 1 : 0;
@@ -219,9 +231,5 @@ app.post('/api/game/select-card', (req, res) => {
     res.json({ success: true, userCards: gameState.userCards });
 });
 
-if (require.main === module) {
-    const PORT = process.env.PORT || 3000;
-    server.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
-}
-
-module.exports = { checkBingoWin, generateBingoCard };
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
