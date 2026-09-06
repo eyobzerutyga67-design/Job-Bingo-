@@ -8,6 +8,7 @@ const server = http.createServer(app);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Synchronized Card Generation Algorithm
 function generateBingoCard(cardId) {
     const seed = cardId * 1000;
     const getCol = (min, max, offset) => {
@@ -36,17 +37,25 @@ function generateBingoCard(cardId) {
     return matrix;
 }
 
+// Strict Winning Pattern Validation
 function checkBingoWin(matrix, calledNumbers) {
     if (!matrix || !Array.isArray(matrix)) return false;
 
     const isMarked = (val) => val === 'FREE' || calledNumbers.includes(val);
 
-    // 1. Horizontal Rows
+    // 1. Horizontal Rows (5 in a horizontal line)
     for (let r = 0; r < 5; r++) {
-        if (matrix[r].every(val => isMarked(val))) return true;
+        let rowWin = true;
+        for (let c = 0; c < 5; c++) {
+            if (!isMarked(matrix[r][c])) {
+                rowWin = false;
+                break;
+            }
+        }
+        if (rowWin) return true;
     }
 
-    // 2. Vertical Columns
+    // 2. Vertical Columns (5 in a vertical line)
     for (let c = 0; c < 5; c++) {
         let colWin = true;
         for (let r = 0; r < 5; r++) {
@@ -58,7 +67,7 @@ function checkBingoWin(matrix, calledNumbers) {
         if (colWin) return true;
     }
 
-    // 3. Top-Left to Bottom-Right Diagonal
+    // 3. Diagonal (Top-Left to Bottom-Right)
     let diag1 = true;
     for (let i = 0; i < 5; i++) {
         if (!isMarked(matrix[i][i])) {
@@ -68,7 +77,7 @@ function checkBingoWin(matrix, calledNumbers) {
     }
     if (diag1) return true;
 
-    // 4. Top-Right to Bottom-Left Diagonal
+    // 4. Diagonal (Top-Right to Bottom-Left)
     let diag2 = true;
     for (let i = 0; i < 5; i++) {
         if (!isMarked(matrix[i][4 - i])) {
@@ -79,7 +88,12 @@ function checkBingoWin(matrix, calledNumbers) {
     if (diag2) return true;
 
     // 5. Four Corners
-    if (isMarked(matrix[0][0]) && isMarked(matrix[0][4]) && isMarked(matrix[4][0]) && isMarked(matrix[4][4])) {
+    if (
+        isMarked(matrix[0][0]) &&
+        isMarked(matrix[0][4]) &&
+        isMarked(matrix[4][0]) &&
+        isMarked(matrix[4][4])
+    ) {
         return true;
     }
 
