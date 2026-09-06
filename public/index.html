@@ -50,13 +50,12 @@
         input:checked + .slider { background-color: #00ff66; }
         input:checked + .slider:before { transform: translateX(18px); }
 
-        /* 1-500 Quick Picker Buttons */
+        /* 1-500 Quick Picker Grid */
         .picker-section { display: block; }
         .picker-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; max-height: 220px; overflow-y: auto; background: #131c2e; padding: 8px; border-radius: 8px; border: 1px solid #1f2c45; margin-bottom: 12px; }
         .card-num-btn { background: #1c283d; color: #cbd5e1; font-weight: bold; font-size: 11px; border-radius: 4px; text-align: center; padding: 8px 0; cursor: pointer; border: 1px solid #283850; }
         .card-num-btn.selected { background: #0088cc; color: #ffffff; border-color: #00d2ff; }
 
-        /* Selected Full Cards Display Area */
         .ground-selected-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
         .full-card-item { background: #131c2e; border: 1px solid #1f2c45; border-radius: 8px; padding: 8px; }
         .full-card-title { text-align: center; font-size: 12px; font-weight: bold; color: #00d2ff; margin-bottom: 4px; }
@@ -64,12 +63,13 @@
         .mini-bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
         .mini-cell { background: #1c283d; color: #cbd5e1; font-size: 10px; font-weight: bold; text-align: center; padding: 6px 0; border-radius: 3px; }
         .mini-cell.free { background: #eab308; color: #000; font-size: 8px; }
+        .mini-cell.marked { background: #0088cc !important; color: #ffffff !important; font-weight: bold; }
 
         .boards-container { display: none; grid-template-columns: repeat(2, 1fr); gap: 10px; }
         .bingo-board { background: #131c2e; padding: 8px; border-radius: 8px; border: 1px solid #1f2c45; }
         .board-title { text-align: center; color: #8a99ad; font-weight: bold; margin-bottom: 4px; font-size: 12px; }
 
-        /* Winner Modal */
+        /* Winner Overlay Modal */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 99; }
         .winner-card-box { background: #1e1b2e; border: 2px solid #8b5cf6; padding: 16px; border-radius: 16px; text-align: center; width: 88%; max-width: 340px; box-shadow: 0 0 25px rgba(139, 92, 246, 0.4); }
         .winner-title { font-size: 22px; font-weight: 900; color: #ffffff; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -136,7 +136,6 @@
         </div>
     </div>
 
-    <!-- 1-500 Quick Buttons Grid + Selected Cards Ground Layout -->
     <div class="picker-section" id="ui-picker-section">
         <div class="picker-grid" id="ui-numbers-grid"></div>
         <div class="ground-selected-cards" id="ui-cards-container"></div>
@@ -144,7 +143,6 @@
 
     <div class="boards-container" id="ui-boards-container"></div>
 
-    <!-- Winner Overlay -->
     <div class="modal" id="winner-modal">
         <div class="winner-card-box">
             <div class="winner-title">🏆 BINGO!</div>
@@ -356,6 +354,8 @@
             container.innerHTML = '';
 
             const cardIds = Object.keys(userCardsData);
+            const isAuto = document.getElementById('auto-toggle').checked;
+
             cardIds.forEach(cardId => {
                 const matrix = userCardsData[cardId];
                 const boardDiv = document.createElement('div');
@@ -366,7 +366,6 @@
                 for (let r = 0; r < 5; r++) {
                     for (let c = 0; c < 5; c++) {
                         const val = matrix[r][c];
-                        let isAuto = document.getElementById('auto-toggle').checked;
                         let isMarked = val === 'FREE' || (isAuto && calledNumbers.includes(val));
                         let cellClass = val === 'FREE' ? 'mini-cell free' : (isMarked ? 'mini-cell marked' : 'mini-cell');
                         boardHTML += `<div class="${cellClass}">${val}</div>`;
