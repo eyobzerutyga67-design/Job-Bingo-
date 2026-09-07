@@ -8,17 +8,16 @@ const server = http.createServer(app);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Generate standard 5x5 matrix where B=Col0, I=Col1, N=Col2, G=Col3, O=Col4
+// Standard 5x5 Bingo Matrix Generation
 function generateBingoCard(cardId) {
-    const numericId = parseInt(cardId, 10);
-    const seed = numericId * 1000;
+    const seed = parseInt(cardId, 10) || 1;
     
     const getCol = (min, max, offset) => {
         let nums = [];
         for (let i = min; i <= max; i++) nums.push(i);
         let result = [];
         for (let i = 0; i < 5; i++) {
-            let idx = (seed + offset + i * 7) % nums.length;
+            let idx = (seed * 13 + offset + i * 7) % nums.length;
             result.push(nums.splice(idx, 1)[0]);
         }
         return result;
@@ -30,7 +29,7 @@ function generateBingoCard(cardId) {
     let g = getCol(46, 60, 4);
     let o = getCol(61, 75, 5);
 
-    n[2] = "FREE"; // Center Free Space
+    n[2] = "FREE";
 
     let matrix = [];
     for (let r = 0; r < 5; r++) {
@@ -39,7 +38,7 @@ function generateBingoCard(cardId) {
     return matrix;
 }
 
-// Check standard Bingo rules (Requires 5 marked tiles in a valid line or 4 corners)
+// Strict Bingo Win Checker
 function checkBingoWin(matrix, calledNumbers) {
     if (!matrix || !Array.isArray(matrix)) return false;
 
@@ -50,31 +49,33 @@ function checkBingoWin(matrix, calledNumbers) {
         return calledSet.has(Number(val));
     };
 
-    // 1. Check Horizontal Rows (5 matched)
+    // 1. Horizontal Rows (Must match ALL 5 cells)
     for (let r = 0; r < 5; r++) {
-        let win = true;
-        for (let c = 0; c < 5; c++) {
-            if (!isMarked(matrix[r][c])) {
-                win = false;
-                break;
-            }
+        if (
+            isMarked(matrix[r][0]) &&
+            isMarked(matrix[r][1]) &&
+            isMarked(matrix[r][2]) &&
+            isMarked(matrix[r][3]) &&
+            isMarked(matrix[r][4])
+        ) {
+            return true;
         }
-        if (win) return true;
     }
 
-    // 2. Check Vertical Columns (5 matched)
+    // 2. Vertical Columns (Must match ALL 5 cells)
     for (let c = 0; c < 5; c++) {
-        let win = true;
-        for (let r = 0; r < 5; r++) {
-            if (!isMarked(matrix[r][c])) {
-                win = false;
-                break;
-            }
+        if (
+            isMarked(matrix[0][c]) &&
+            isMarked(matrix[1][c]) &&
+            isMarked(matrix[2][c]) &&
+            isMarked(matrix[3][c]) &&
+            isMarked(matrix[4][c])
+        ) {
+            return true;
         }
-        if (win) return true;
     }
 
-    // 3. Diagonal Top-Left to Bottom-Right
+    // 3. Main Diagonal
     if (
         isMarked(matrix[0][0]) &&
         isMarked(matrix[1][1]) &&
@@ -85,7 +86,7 @@ function checkBingoWin(matrix, calledNumbers) {
         return true;
     }
 
-    // 4. Diagonal Top-Right to Bottom-Left
+    // 4. Anti Diagonal
     if (
         isMarked(matrix[0][4]) &&
         isMarked(matrix[1][3]) &&
@@ -96,7 +97,7 @@ function checkBingoWin(matrix, calledNumbers) {
         return true;
     }
 
-    // 5. Four Outer Corners
+    // 5. Four Corners
     if (
         isMarked(matrix[0][0]) &&
         isMarked(matrix[0][4]) &&
@@ -136,13 +137,14 @@ setInterval(() => {
         gameState.timer--;
         if (gameState.timer <= 0) {
             gameState.status = 'CALCULATING';
-            gameState.timer = 5;
+            gameState.timer = 3;
         }
     } else if (gameState.status === 'CALCULATING') {
         gameState.timer--;
         if (gameState.timer <= 0) {
             gameState.status = 'PLAYING';
             gameState.calledNumbers = [];
+            gameState.winner = null;
             remainingBalls = shuffle(Array.from({ length: 75 }, (_, i) => i + 1));
         }
     } else if (gameState.status === 'PLAYING') {
@@ -158,31 +160,20 @@ setInterval(() => {
 
             gameState.currentBall = { letter, number: nextNum };
 
-            let foundWinner = false;
+            // Evaluate cards strictly
             for (let cardId in gameState.userCards) {
                 const matrix = gameState.userCards[cardId];
-                if (checkBingoWin(matrix, gameState.calledNumbers) === true) {
+                if (checkBingoWin(matrix, gameState.calledNumbers)) {
                     gameState.status = 'WINNER';
                     gameState.winner = {
                         player: 'aemro (*9025)',
-                        prize: gameState.derash || 40,
+                        prize: gameState.derash || 10,
                         cardId: cardId,
                         cardMatrix: matrix
                     };
                     gameState.timer = 10;
-                    foundWinner = true;
                     break;
                 }
-            }
-
-            if (!foundWinner && remainingBalls.length === 0) {
-                gameState.status = 'WAITING';
-                gameState.timer = 30;
-                gameState.winner = null;
-                gameState.calledNumbers = [];
-                gameState.userCards = {};
-                gameState.playersCount = 0;
-                gameState.derash = 0;
             }
         } else {
             gameState.status = 'WAITING';
