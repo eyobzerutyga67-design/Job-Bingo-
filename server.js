@@ -15,7 +15,6 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Seeded generator for 500 unique card layouts
 function mulberry32(a) {
     return function() {
         let t = a += 0x6D2B79F5;
@@ -75,7 +74,7 @@ function checkBingoWin(matrix, calledNumbers) {
 }
 
 let gameState = {
-    status: 'WAITING', // WAITING (45s) -> STARTING (5s) -> PLAYING -> WINNER (10s)
+    status: 'WAITING',
     timer: 45,
     derash: 0,
     calledNumbers: [],
@@ -166,7 +165,14 @@ setInterval(() => {
 }, 1500);
 
 app.get('/api/game/state', (req, res) => {
-    res.json(gameState);
+    const activePlayers = new Set(Object.values(gameState.userCards).map(c => c.ownerId)).size;
+    const totalSelectedCards = Object.keys(gameState.userCards).length;
+
+    res.json({
+        ...gameState,
+        playerCount: activePlayers,
+        totalCards: totalSelectedCards
+    });
 });
 
 app.post('/api/game/select-card', (req, res) => {

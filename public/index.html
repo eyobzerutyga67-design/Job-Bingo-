@@ -7,48 +7,71 @@
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: #121212; color: #ffffff; margin: 0; padding: 10px; text-align: center; }
-        .logo { width: 100%; max-width: 220px; border-radius: 12px; margin: 5px auto 10px; display: block; box-shadow: 0 4px 15px rgba(255,100,0,0.3); }
-        .status-bar { font-size: 0.9rem; color: #fff; background: #1e1e1e; padding: 10px; border-radius: 8px; border: 1px solid #333; margin-bottom: 12px; font-weight: bold; }
-        .current-ball { font-size: 2.4rem; font-weight: bold; margin: 10px 0; min-height: 55px; }
+        .logo { width: 100%; max-width: 180px; border-radius: 12px; margin: 0 auto 8px; display: block; box-shadow: 0 4px 15px rgba(255,100,0,0.3); }
+        
+        .status-bar { font-size: 0.85rem; color: #fff; background: #1e1e1e; padding: 8px; border-radius: 8px; border: 1px solid #333; margin-bottom: 8px; font-weight: bold; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 5px; }
+        .status-bar span { background: #2a2a2a; padding: 4px 8px; border-radius: 4px; border: 1px solid #444; }
 
-        .card-picker-box { max-height: 180px; overflow-y: auto; background: #1a1a1a; padding: 8px; border-radius: 8px; border: 1px solid #333; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 15px; }
+        .current-ball { font-size: 2.2rem; font-weight: bold; margin: 6px 0; min-height: 48px; }
+
+        .my-selection-bar { background: #0056b3; color: #fff; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 0.85rem; margin-bottom: 10px; }
+
+        .caller-board-title { font-size: 0.8rem; font-weight: bold; color: #aaa; margin: 5px 0 3px; text-transform: uppercase; }
+        .caller-board { display: grid; grid-template-columns: repeat(15, 1fr); gap: 2px; background: #1a1a1a; padding: 6px; border-radius: 8px; border: 1px solid #333; margin-bottom: 12px; }
+        .ball-num { font-size: 0.65rem; padding: 4px 0; background: #262626; color: #666; border-radius: 2px; font-weight: bold; }
+        .ball-num.called { background: #28a745; color: #ffffff; font-weight: bold; box-shadow: 0 0 5px rgba(40,167,69,0.8); }
+
+        .card-picker-box { max-height: 220px; overflow-y: auto; background: #1a1a1a; padding: 8px; border-radius: 8px; border: 1px solid #333; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 15px; }
         .pick-btn { background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 6px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
-        .pick-btn.selected { background: #007bff; border-color: #0056b3; }
+        .pick-btn.selected { background: #28a745; border-color: #1e7e34; color: #fff; box-shadow: 0 0 8px rgba(40,167,69,0.7); }
 
-        .bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; max-width: 340px; margin: 0 auto 15px; }
-        .b-header { font-weight: bold; padding: 8px 0; border-radius: 4px; color: #fff; font-size: 1.1rem; }
+        .bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; max-width: 320px; margin: 0 auto 15px; }
+        .b-header { font-weight: bold; padding: 6px 0; border-radius: 4px; color: #fff; font-size: 1rem; }
         .b-header.b-green { background: #28a745; }
         .b-header.b-yellow { background: #ffc107; color: #000; }
         .b-header.b-red { background: #dc3545; }
         .b-header.b-blue { background: #007bff; }
 
-        .cell { background: #222; border: 1px solid #333; padding: 10px 0; font-weight: bold; font-size: 0.95rem; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
-        .cell.called { background: #28a745; color: #fff; border-color: #1e7e34; }
-        .cell.free { background: #ffc107; color: #000; }
+        .cell { background: #222; border: 1px solid #333; padding: 8px 0; font-weight: bold; font-size: 0.9rem; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+        .cell.called { background: #28a745; color: #fff; border-color: #1e7e34; font-weight: bold; }
+        .cell.free { background: #ffc107; color: #000; font-weight: bold; }
         .cell.uncalled { background: #2a2a2a; color: #aaa; }
 
-        #winner-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); flex-direction: column; justify-content: center; align-items: center; z-index: 999; }
+        #winner-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); flex-direction: column; justify-content: center; align-items: center; z-index: 999; }
         .modal-content { background: #1e1e1e; border: 1px solid #444; padding: 15px; border-radius: 10px; width: 92%; max-width: 340px; }
-        .win-title { color: #28a745; font-size: 1.5rem; margin: 0 0 5px; }
+        .win-title { color: #28a745; font-size: 1.4rem; margin: 0 0 5px; }
     </style>
 </head>
 <body>
 
     <img src="/logo.png" alt="Job Bingo Logo" class="logo" onerror="this.style.display='none'">
-    <div id="status-display" class="status-bar">Loading...</div>
+    
+    <div class="status-bar">
+        <span id="stat-mode">WAITING</span>
+        <span id="stat-players">👥 Players: 0</span>
+        <span id="stat-cards">🎴 Cards: 0</span>
+        <span id="stat-derash">💰 Prize: 0 ETB</span>
+    </div>
+
     <div id="current-ball" class="current-ball">--</div>
 
+    <div id="selection-summary" class="my-selection-bar">Your Picked Cards: None (Max 4)</div>
+
+    <div class="caller-board-title">75 Ball Caller Board</div>
+    <div id="caller-board" class="caller-board"></div>
+
     <div id="picker-container" class="card-picker-box"></div>
+    
     <div id="active-cards-container"></div>
 
     <div id="winner-modal">
         <div class="modal-content">
             <h2 id="win-player-name" class="win-title">Player Won!</h2>
-            <p id="win-prize" style="font-weight:bold; color:#00d2ff; margin: 5px 0;">Prize: 0 ETB</p>
-            <p id="win-pattern" style="color:#ffc107; margin: 5px 0;">Pattern: --</p>
-            <p id="win-card-id" style="margin: 5px 0;">Card #--</p>
+            <p id="win-prize" style="font-weight:bold; color:#00d2ff; margin: 4px 0;">Prize: 0 ETB</p>
+            <p id="win-pattern" style="color:#ffc107; margin: 4px 0;">Pattern: --</p>
+            <p id="win-card-id" style="margin: 4px 0;">Card #--</p>
             
-            <div class="bingo-grid" style="margin-top: 10px;">
+            <div class="bingo-grid" style="margin-top: 8px;">
                 <div class="b-header b-green">🟢 B</div>
                 <div class="b-header b-yellow">🟡 I</div>
                 <div class="b-header b-red">🔴 N</div>
@@ -57,13 +80,25 @@
             </div>
             <div id="win-card-grid" class="bingo-grid"></div>
             
-            <p id="win-timer" style="margin-top: 10px; color: #28a745; font-weight: bold;">Card Selection in: --s</p>
+            <p id="win-timer" style="margin-top: 8px; color: #28a745; font-weight: bold;">Card Selection in: --s</p>
         </div>
     </div>
 
     <script>
         const userId = 'user_' + Math.floor(Math.random() * 8999 + 1000);
         let selectedCards = {};
+
+        function initCallerBoard() {
+            const board = document.getElementById('caller-board');
+            board.innerHTML = '';
+            for (let i = 1; i <= 75; i++) {
+                const b = document.createElement('div');
+                b.className = 'ball-num';
+                b.id = `caller-ball-${i}`;
+                b.innerText = i;
+                board.appendChild(b);
+            }
+        }
 
         async function selectCard(cardId) {
             try {
@@ -97,20 +132,45 @@
                 }
             }
 
-            const mySelectedIds = new Set();
+            const mySelectedIds = [];
             for (let k in selectedCards) {
                 if (selectedCards[k].ownerId === userId) {
-                    mySelectedIds.add(String(selectedCards[k].cardId));
+                    mySelectedIds.push(selectedCards[k].cardId);
                 }
             }
+
+            const mySet = new Set(mySelectedIds);
 
             for (let i = 1; i <= 500; i++) {
                 const btn = document.getElementById(`pick-btn-${i}`);
                 if (btn) {
-                    if (mySelectedIds.has(String(i))) {
+                    if (mySet.has(i)) {
                         btn.classList.add('selected');
+                        btn.innerText = `✓ #${i}`;
                     } else {
                         btn.classList.remove('selected');
+                        btn.innerText = `#${i}`;
+                    }
+                }
+            }
+
+            const summary = document.getElementById('selection-summary');
+            if (mySelectedIds.length > 0) {
+                summary.innerText = `Your Selected Cards (${mySelectedIds.length}/4): ` + mySelectedIds.map(id => `#${id}`).join(', ');
+            } else {
+                summary.innerText = `Your Picked Cards: None (Max 4 per player)`;
+            }
+        }
+
+        function updateCallerBoard(calledNumbers) {
+            const calledSet = new Set((calledNumbers || []).map(n => Number(n)));
+            for (let i = 1; i <= 75; i++) {
+                const b = document.getElementById(`caller-ball-${i}`);
+                if (b) {
+                    if (calledSet.has(i)) {
+                        b.classList.add('called');
+                    } else {
+                        b.classList.remove('called');
                     }
                 }
             }
@@ -130,7 +190,7 @@
                 const cardDiv = document.createElement('div');
                 cardDiv.style.marginBottom = '15px';
 
-                let html = `<h3 style="margin:5px 0;">Card #${cardObj.cardId}</h3>`;
+                let html = `<h3 style="margin:5px 0; color:#28a745;">Card #${cardObj.cardId}</h3>`;
                 html += `<div class="bingo-grid">
                             <div class="b-header b-green">🟢 B</div>
                             <div class="b-header b-yellow">🟡 I</div>
@@ -142,7 +202,7 @@
                     for (let c = 0; c < 5; c++) {
                         const val = String(matrix[r][c]);
                         if (val === 'FREE' || val === 'F') {
-                            html += `<div class="cell free">F</div>`;
+                            html += `<div class="cell free">FREE</div>`;
                         } else if (calledSet.has(val)) {
                             html += `<div class="cell called">${val}</div>`;
                         } else {
@@ -161,19 +221,26 @@
                 const res = await fetch('/api/game/state?t=' + Date.now());
                 const data = await res.json();
 
-                let statusMsg = '';
+                document.getElementById('stat-players').innerText = `👥 Players: ${data.playerCount || 0}`;
+                document.getElementById('stat-cards').innerText = `🎴 Cards: ${data.totalCards || 0}`;
+                document.getElementById('stat-derash').innerText = `💰 Derash: ${data.derash || 0} ETB`;
+
+                const pickerContainer = document.getElementById('picker-container');
+
                 if (data.status === 'WAITING') {
-                    statusMsg = `Pick Cards (45s): ${data.timer}s | Stake: 10 ETB | Derash: ${data.derash} ETB`;
+                    document.getElementById('stat-mode').innerText = `PICK CARDS (${data.timer}s)`;
+                    pickerContainer.style.display = 'flex';
                 } else if (data.status === 'STARTING') {
-                    statusMsg = `Starting Game in: ${data.timer}s | Derash: ${data.derash} ETB`;
+                    document.getElementById('stat-mode').innerText = `STARTING (${data.timer}s)`;
+                    pickerContainer.style.display = 'none';
                 } else if (data.status === 'PLAYING') {
-                    statusMsg = `LIVE GAME | Derash: ${data.derash} ETB`;
+                    document.getElementById('stat-mode').innerText = `LIVE GAME`;
+                    pickerContainer.style.display = 'none';
                 } else if (data.status === 'WINNER') {
-                    statusMsg = `GAME OVER`;
+                    document.getElementById('stat-mode').innerText = `GAME OVER`;
+                    pickerContainer.style.display = 'none';
                 }
 
-                document.getElementById('status-display').innerText = statusMsg;
-                
                 if (data.currentBall) {
                     const colorMap = { green: '#28a745', yellow: '#ffc107', red: '#dc3545', blue: '#007bff' };
                     const bColor = colorMap[data.currentBall.color] || '#00d2ff';
@@ -184,6 +251,7 @@
 
                 selectedCards = data.userCards || {};
                 renderPickers();
+                updateCallerBoard(data.calledNumbers);
                 renderPlayerCards(data.calledNumbers);
 
                 if (data.status === 'WINNER' && data.winner) {
@@ -215,7 +283,7 @@
                         const cell = document.createElement('div');
                         if (val === 'FREE' || val === 'F') {
                             cell.className = 'cell free';
-                            cell.innerText = 'F';
+                            cell.innerText = 'FREE';
                         } else if (calledSet.has(val)) {
                             cell.className = 'cell called';
                             cell.innerText = val;
@@ -230,6 +298,7 @@
             document.getElementById('winner-modal').style.display = 'flex';
         }
 
+        initCallerBoard();
         setInterval(fetchState, 1000);
         fetchState();
     </script>
