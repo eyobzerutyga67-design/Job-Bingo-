@@ -3,72 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <title>Job Bingo</title>
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #121212; color: #ffffff; margin: 0; padding: 12px; text-align: center; }
-        h1 { font-size: 1.6rem; margin: 5px 0 2px; text-transform: uppercase; letter-spacing: 1px; }
-        .version-badge { color: #00ff66; font-size: 0.75rem; font-weight: bold; margin-bottom: 10px; }
-        .status-bar { font-size: 0.9rem; color: #ccc; margin-bottom: 10px; background: #1e1e1e; padding: 8px; border-radius: 6px; }
-        .current-ball { font-size: 2.5rem; font-weight: bold; color: #00d2ff; margin: 10px 0; min-height: 50px; }
-        
-        .card-selector { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 15px; }
-        .card-btn { background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        .card-btn.selected { background: #007bff; border-color: #0056b3; }
+        body { background-color: #121212; color: #ffffff; margin: 0; padding: 10px; text-align: center; }
+        .logo { width: 100%; max-width: 220px; border-radius: 12px; margin: 5px auto 10px; display: block; box-shadow: 0 4px 15px rgba(255,100,0,0.3); }
+        .status-bar { font-size: 0.9rem; color: #fff; background: #1e1e1e; padding: 10px; border-radius: 8px; border: 1px solid #333; margin-bottom: 12px; font-weight: bold; }
+        .current-ball { font-size: 2.4rem; font-weight: bold; margin: 10px 0; min-height: 55px; }
+
+        .card-picker-box { max-height: 180px; overflow-y: auto; background: #1a1a1a; padding: 8px; border-radius: 8px; border: 1px solid #333; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 15px; }
+        .pick-btn { background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 6px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+        .pick-btn.selected { background: #007bff; border-color: #0056b3; }
 
         .bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; max-width: 340px; margin: 0 auto 15px; }
-        .bingo-header { background: #333; color: #ffc107; font-weight: bold; padding: 8px 0; border-radius: 4px; }
+        .b-header { font-weight: bold; padding: 8px 0; border-radius: 4px; color: #fff; font-size: 1.1rem; }
+        .b-header.b-green { background: #28a745; }
+        .b-header.b-yellow { background: #ffc107; color: #000; }
+        .b-header.b-red { background: #dc3545; }
+        .b-header.b-blue { background: #007bff; }
+
         .cell { background: #222; border: 1px solid #333; padding: 10px 0; font-weight: bold; font-size: 0.95rem; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
         .cell.called { background: #28a745; color: #fff; border-color: #1e7e34; }
         .cell.free { background: #ffc107; color: #000; }
         .cell.uncalled { background: #2a2a2a; color: #aaa; }
 
-        #winner-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); flex-direction: column; justify-content: center; align-items: center; z-index: 999; }
-        .modal-content { background: #1e1e1e; border: 1px solid #444; padding: 15px; border-radius: 10px; width: 90%; max-width: 340px; }
-        .win-title { color: #28a745; font-size: 1.4rem; margin-bottom: 5px; }
+        #winner-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); flex-direction: column; justify-content: center; align-items: center; z-index: 999; }
+        .modal-content { background: #1e1e1e; border: 1px solid #444; padding: 15px; border-radius: 10px; width: 92%; max-width: 340px; }
+        .win-title { color: #28a745; font-size: 1.5rem; margin: 0 0 5px; }
     </style>
 </head>
 <body>
 
-    <h1>JOB BINGO</h1>
-    <div class="version-badge">v3.1 ONLINE ENGINE</div>
-    <div id="status-display" class="status-bar">Loading state...</div>
+    <img src="/logo.png" alt="Job Bingo Logo" class="logo" onerror="this.style.display='none'">
+    <div id="status-display" class="status-bar">Loading...</div>
     <div id="current-ball" class="current-ball">--</div>
 
-    <div id="selector-container" class="card-selector"></div>
+    <div id="picker-container" class="card-picker-box"></div>
     <div id="active-cards-container"></div>
 
     <div id="winner-modal">
         <div class="modal-content">
             <h2 id="win-player-name" class="win-title">Player Won!</h2>
-            <p id="win-prize">Prize: 0 ETB</p>
-            <p id="win-card-id">Card #--</p>
+            <p id="win-prize" style="font-weight:bold; color:#00d2ff; margin: 5px 0;">Prize: 0 ETB</p>
+            <p id="win-pattern" style="color:#ffc107; margin: 5px 0;">Pattern: --</p>
+            <p id="win-card-id" style="margin: 5px 0;">Card #--</p>
             
             <div class="bingo-grid" style="margin-top: 10px;">
-                <div class="bingo-header">B</div>
-                <div class="bingo-header">I</div>
-                <div class="bingo-header">N</div>
-                <div class="bingo-header">G</div>
-                <div class="bingo-header">O</div>
+                <div class="b-header b-green">🟢 B</div>
+                <div class="b-header b-yellow">🟡 I</div>
+                <div class="b-header b-red">🔴 N</div>
+                <div class="b-header b-blue">🔵 G</div>
+                <div class="b-header b-green">🟢 O</div>
             </div>
             <div id="win-card-grid" class="bingo-grid"></div>
             
-            <p id="win-timer" style="margin-top: 10px; color: #ffc107;">Next Game in: --s</p>
+            <p id="win-timer" style="margin-top: 10px; color: #28a745; font-weight: bold;">Card Selection in: --s</p>
         </div>
     </div>
 
     <script>
+        const userId = 'user_' + Math.floor(Math.random() * 8999 + 1000);
         let selectedCards = {};
 
         async function selectCard(cardId) {
             try {
-                const res = await fetch('/api/game/select-card?t=' + Date.now(), {
+                const res = await fetch('/api/game/select-card', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cardId })
+                    body: JSON.stringify({ cardId, userId, userName: 'Player (' + userId.slice(-4) + ')' })
                 });
                 const data = await res.json();
                 if (data.success) {
@@ -82,23 +84,30 @@
             }
         }
 
-        function renderSelectors() {
-            const container = document.getElementById('selector-container');
+        function renderPickers() {
+            const container = document.getElementById('picker-container');
             if (container.children.length === 0) {
-                for (let i = 1; i <= 10; i++) {
+                for (let i = 1; i <= 500; i++) {
                     const btn = document.createElement('button');
-                    btn.className = 'card-btn';
-                    btn.id = `card-btn-${i}`;
-                    btn.innerText = `Card ${i}`;
+                    btn.className = 'pick-btn';
+                    btn.id = `pick-btn-${i}`;
+                    btn.innerText = `#${i}`;
                     btn.onclick = () => selectCard(i);
                     container.appendChild(btn);
                 }
             }
 
-            for (let i = 1; i <= 10; i++) {
-                const btn = document.getElementById(`card-btn-${i}`);
+            const mySelectedIds = new Set();
+            for (let k in selectedCards) {
+                if (selectedCards[k].ownerId === userId) {
+                    mySelectedIds.add(String(selectedCards[k].cardId));
+                }
+            }
+
+            for (let i = 1; i <= 500; i++) {
+                const btn = document.getElementById(`pick-btn-${i}`);
                 if (btn) {
-                    if (selectedCards[String(i)]) {
+                    if (mySelectedIds.has(String(i))) {
                         btn.classList.add('selected');
                     } else {
                         btn.classList.remove('selected');
@@ -113,18 +122,21 @@
 
             const calledSet = new Set((calledNumbers || []).map(n => String(n)));
 
-            for (let cardId in selectedCards) {
-                const matrix = selectedCards[cardId];
-                const cardDiv = document.createElement('div');
-                cardDiv.style.marginBottom = '20px';
+            for (let k in selectedCards) {
+                if (selectedCards[k].ownerId !== userId) continue;
 
-                let html = `<h3 style="margin:5px 0;">Card #${cardId}</h3>`;
+                const cardObj = selectedCards[k];
+                const matrix = cardObj.matrix;
+                const cardDiv = document.createElement('div');
+                cardDiv.style.marginBottom = '15px';
+
+                let html = `<h3 style="margin:5px 0;">Card #${cardObj.cardId}</h3>`;
                 html += `<div class="bingo-grid">
-                            <div class="bingo-header">B</div>
-                            <div class="bingo-header">I</div>
-                            <div class="bingo-header">N</div>
-                            <div class="bingo-header">G</div>
-                            <div class="bingo-header">O</div>`;
+                            <div class="b-header b-green">🟢 B</div>
+                            <div class="b-header b-yellow">🟡 I</div>
+                            <div class="b-header b-red">🔴 N</div>
+                            <div class="b-header b-blue">🔵 G</div>
+                            <div class="b-header b-green">🟢 O</div>`;
 
                 for (let r = 0; r < 5; r++) {
                     for (let c = 0; c < 5; c++) {
@@ -149,15 +161,29 @@
                 const res = await fetch('/api/game/state?t=' + Date.now());
                 const data = await res.json();
 
-                document.getElementById('status-display').innerText = `Status: ${data.status} | Timer: ${data.timer}s | Derash: ${data.derash} ETB`;
+                let statusMsg = '';
+                if (data.status === 'WAITING') {
+                    statusMsg = `Pick Cards (45s): ${data.timer}s | Stake: 10 ETB | Derash: ${data.derash} ETB`;
+                } else if (data.status === 'STARTING') {
+                    statusMsg = `Starting Game in: ${data.timer}s | Derash: ${data.derash} ETB`;
+                } else if (data.status === 'PLAYING') {
+                    statusMsg = `LIVE GAME | Derash: ${data.derash} ETB`;
+                } else if (data.status === 'WINNER') {
+                    statusMsg = `GAME OVER`;
+                }
+
+                document.getElementById('status-display').innerText = statusMsg;
                 
                 if (data.currentBall) {
-                    document.getElementById('current-ball').innerText = `${data.currentBall.letter}-${data.currentBall.number}`;
+                    const colorMap = { green: '#28a745', yellow: '#ffc107', red: '#dc3545', blue: '#007bff' };
+                    const bColor = colorMap[data.currentBall.color] || '#00d2ff';
+                    document.getElementById('current-ball').innerHTML = `<span style="color:${bColor}">${data.currentBall.letter}-${data.currentBall.number}</span>`;
                 } else {
                     document.getElementById('current-ball').innerText = '--';
                 }
 
-                renderSelectors();
+                selectedCards = data.userCards || {};
+                renderPickers();
                 renderPlayerCards(data.calledNumbers);
 
                 if (data.status === 'WINNER' && data.winner) {
@@ -173,8 +199,9 @@
         function renderWinnerModal(winner, calledNumbers, timer) {
             document.getElementById('win-player-name').innerText = `${winner.player} WON!`;
             document.getElementById('win-prize').innerText = `Prize: ${winner.prize} ETB`;
-            document.getElementById('win-card-id').innerText = `Card# ${winner.cardId}`;
-            document.getElementById('win-timer').innerText = `Next Game in: ${timer}s`;
+            document.getElementById('win-pattern').innerText = `Won by: ${winner.winPattern}`;
+            document.getElementById('win-card-id').innerText = `Card #${winner.cardId}`;
+            document.getElementById('win-timer').innerText = `Card Selection in: ${timer}s`;
 
             const grid = document.getElementById('win-card-grid');
             grid.innerHTML = '';
