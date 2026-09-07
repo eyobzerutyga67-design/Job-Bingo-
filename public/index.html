@@ -2,80 +2,97 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Best Bingo</title>
     <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
-        body { background-color: #070b15; color: #ffffff; padding: 10px; text-align: center; }
+        :root {
+            --bg-dark: #070c18;
+            --card-bg: #121b2d;
+            --border-color: #1e293b;
+            --primary-blue: #0284c7;
+            --cyan-accent: #00bfff;
+            --green-accent: #22c55e;
+            --yellow-accent: #eab308;
+            --red-accent: #ef4444;
+            --purple-accent: #a855f7;
+            --text-muted: #94a3b8;
+        }
 
-        .logo { width: 100%; max-width: 180px; border-radius: 12px; margin: 0 auto 10px; display: block; box-shadow: 0 4px 15px rgba(255,100,0,0.3); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; }
+        body { background-color: var(--bg-dark); color: #ffffff; padding: 10px; max-width: 480px; margin: 0 auto; }
+
+        /* Top Header Logo */
+        .logo-header { text-align: center; margin-bottom: 8px; }
+        .logo-header img { width: 100%; max-width: 220px; border-radius: 8px; object-fit: contain; }
 
         /* Top Bar */
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 4px; }
-        .btn-refresh { background: #0284c7; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer; text-transform: uppercase; }
-        .balance-txt { color: #22c55e; font-weight: bold; font-size: 0.85rem; }
-        .amharic-badge { background: #854d0e; color: #fef08a; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; }
+        .btn-refresh { background: transparent; color: var(--cyan-accent); border: 1.5px solid var(--cyan-accent); padding: 5px 12px; border-radius: 6px; font-weight: 700; font-size: 0.75rem; cursor: pointer; }
+        .balance-txt { color: var(--green-accent); font-weight: 800; font-size: 0.85rem; }
+        .amharic-badge { background: #513607; color: #fde047; padding: 4px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 700; border: 1px solid #714b08; }
 
-        /* Stat Grid */
-        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
-        .stat-box { background: #111827; border: 1px solid #1f2937; padding: 8px 2px; border-radius: 8px; }
-        .stat-label { font-size: 0.65rem; color: #9ca3af; margin-bottom: 2px; }
-        .stat-val { font-size: 0.85rem; font-weight: bold; color: #ffffff; }
+        /* Stat Grid Header */
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+        .stat-box { background: var(--card-bg); border: 1px solid var(--border-color); padding: 6px 2px; border-radius: 8px; text-align: center; }
+        .stat-label { font-size: 0.65rem; color: var(--text-muted); margin-bottom: 2px; }
+        .stat-val { font-size: 0.82rem; font-weight: 800; color: #ffffff; }
 
-        /* Nav Tabs */
+        /* Nav Tab Switcher */
         .tab-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-        .tab-btn { background: #1f2937; color: #9ca3af; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; cursor: pointer; }
-        .tab-btn.active { background: #0284c7; color: #ffffff; }
+        .tab-btn { background: var(--card-bg); color: var(--text-muted); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; text-align: center; }
+        .tab-btn.active { background: var(--primary-blue); color: #ffffff; border-color: var(--primary-blue); }
 
-        /* Countdown Bar */
-        .timer-bar { background: #0f172a; border: 1px solid #0284c7; color: #38bdf8; padding: 8px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; margin-bottom: 12px; }
+        /* Game Status Timer Bar */
+        .timer-bar { background: #0c1527; border: 1px solid #0284c7; color: var(--cyan-accent); padding: 8px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; text-align: center; margin-bottom: 10px; }
 
-        /* Live Section */
-        .live-container { display: flex; gap: 10px; margin-bottom: 12px; align-items: flex-start; justify-content: center; }
-        
-        /* 5x15 Matrix Caller Board */
-        .matrix-board { background: #111827; border: 1px solid #1f2937; padding: 6px; border-radius: 8px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; flex: 1.2; max-width: 210px; }
-        .matrix-header { font-size: 0.7rem; font-weight: bold; padding: 2px 0; }
+        /* Live Matrix + Ball Caller Layout */
+        .live-container { display: flex; gap: 10px; margin-bottom: 12px; align-items: flex-start; justify-content: space-between; }
+        .matrix-board { background: var(--card-bg); border: 1px solid var(--border-color); padding: 6px; border-radius: 8px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; flex: 1.3; }
+        .matrix-header { font-size: 0.7rem; font-weight: 900; text-align: center; padding: 2px 0; }
         .mh-b { color: #ef4444; } .mh-i { color: #38bdf8; } .mh-n { color: #f59e0b; } .mh-g { color: #22c55e; } .mh-o { color: #a855f7; }
-        .matrix-cell { font-size: 0.6rem; padding: 3px 0; background: #1f2937; color: #4b5563; border-radius: 2px; font-weight: bold; }
-        .matrix-cell.called { background: #0284c7; color: #ffffff; }
+        
+        .matrix-cell { font-size: 0.68rem; padding: 3px 0; background: #1a2436; color: #64748b; border-radius: 2px; font-weight: 700; text-align: center; }
+        .matrix-cell.called { background: var(--primary-blue); color: #ffffff; font-weight: 900; }
 
-        /* Ball Call Display */
-        .ball-display-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 15px; }
-        .ball-circle { width: 75px; height: 75px; border-radius: 50%; background: #f59e0b; border: 4px solid #fef08a; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: bold; color: #000000; box-shadow: 0 0 15px rgba(245, 158, 11, 0.5); margin-bottom: 10px; }
-        .auto-toggle { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: bold; color: #22c55e; }
+        .ball-display-container { flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 20px; }
+        .ball-circle { width: 80px; height: 80px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #fef08a, #eab308, #ca8a04); border: 3px solid #fef08a; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 900; color: #000000; box-shadow: 0 0 20px rgba(234, 179, 8, 0.5); margin-bottom: 10px; }
+        .auto-toggle { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 800; color: var(--green-accent); }
+        .toggle-switch { background: var(--green-accent); width: 32px; height: 18px; border-radius: 10px; position: relative; display: inline-block; }
+        .toggle-knob { background: #ffffff; width: 14px; height: 14px; border-radius: 50%; position: absolute; right: 2px; top: 2px; }
 
-        /* 2-Column Cards Grid */
+        /* 2-Column Bingo Cards Layout */
         .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-        .card-container { background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 6px; cursor: pointer; }
-        .card-container.selected { border-color: #0284c7; box-shadow: 0 0 8px rgba(2, 132, 199, 0.4); }
-        .card-title { color: #38bdf8; font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; }
+        .card-container { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; cursor: pointer; }
+        .card-container.selected { border-color: var(--primary-blue); box-shadow: 0 0 10px rgba(2, 132, 199, 0.3); }
+        .card-title { color: var(--cyan-accent); font-size: 0.75rem; font-weight: 800; text-align: center; margin-bottom: 5px; }
         
         .b-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
-        .b-cell { background: #1f2937; color: #d1d5db; font-size: 0.65rem; font-weight: bold; padding: 6px 0; border-radius: 3px; display: flex; align-items: center; justify-content: center; }
-        .b-cell.free { background: #f59e0b; color: #000000; font-weight: bold; }
-        .b-cell.called { background: #22c55e; color: #ffffff; }
+        .b-cell { background: #1a2436; color: #cbd5e1; font-size: 0.65rem; font-weight: 700; padding: 5px 0; border-radius: 3px; display: flex; align-items: center; justify-content: center; aspect-ratio: 1; }
+        .b-cell.free { background: var(--yellow-accent); color: #000000; font-weight: 900; font-size: 0.55rem; }
+        .b-cell.called { background: var(--primary-blue); color: #ffffff; font-weight: 800; }
 
-        /* Winner Modal */
-        #winner-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); flex-direction: column; justify-content: center; align-items: center; z-index: 999; }
-        .modal-box { background: #111827; border: 2px solid #8b5cf6; border-radius: 12px; padding: 15px; width: 90%; max-width: 320px; box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
-        .win-heading { color: #ffffff; font-size: 1.3rem; margin-bottom: 6px; font-weight: bold; }
-        .win-badge { background: #22c55e; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; margin-bottom: 10px; display: inline-block; }
+        /* Winner Modal Pop-up */
+        #winner-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px); flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-box { background: var(--card-bg); border: 2px solid var(--purple-accent); border-radius: 14px; padding: 16px; width: 88%; max-width: 320px; text-align: center; box-shadow: 0 0 25px rgba(168, 85, 247, 0.5); }
+        .win-heading { color: #ffffff; font-size: 1.3rem; font-weight: 900; margin-bottom: 6px; }
+        .win-badge { background: var(--green-accent); color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; margin-bottom: 10px; display: inline-block; }
         
-        .win-headers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 4px; font-weight: bold; font-size: 0.85rem; }
-        .win-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 10px; }
-        .win-cell { font-size: 0.75rem; font-weight: bold; padding: 8px 0; border-radius: 4px; color: #ffffff; }
-        .win-cell.hit { background: #22c55e; }
-        .win-cell.miss { background: #ef4444; }
+        .win-headers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 4px; font-weight: 900; font-size: 0.85rem; }
+        .win-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 12px; }
+        .win-cell { font-size: 0.75rem; font-weight: 800; padding: 6px 0; border-radius: 4px; color: #ffffff; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
+        .win-cell.hit { background: var(--green-accent); }
+        .win-cell.miss { background: var(--red-accent); }
 
-        .win-footer { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: bold; color: #22c55e; margin-bottom: 6px; }
-        .win-next { color: #f59e0b; font-size: 0.8rem; font-weight: bold; }
+        .win-footer { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 800; color: var(--green-accent); margin-bottom: 6px; padding: 0 4px; }
+        .win-next { color: var(--yellow-accent); font-size: 0.8rem; font-weight: 800; }
     </style>
 </head>
 <body>
 
-    <!-- Logo Image -->
-    <img src="/logo.png" alt="Job Bingo Logo" class="logo" onerror="this.style.display='none'">
+    <!-- Logo Display -->
+    <div class="logo-header">
+        <img src="/logo.png" alt="Bingo Logo" onerror="this.style.display='none'">
+    </div>
 
     <!-- Top Bar -->
     <div class="top-bar">
@@ -104,16 +121,16 @@
         </div>
     </div>
 
-    <!-- Nav Tabs -->
+    <!-- Nav Tab Switcher -->
     <div class="tab-bar">
         <button id="tab-pick" class="tab-btn active">Pick Cards (1-500)</button>
         <button id="tab-live" class="tab-btn">Live Game</button>
     </div>
 
     <!-- Countdown Bar -->
-    <div id="timer-bar" class="timer-bar">Next Round in: 45s</div>
+    <div id="timer-bar" class="timer-bar">Next Round in: 24s</div>
 
-    <!-- Live Game Board (Hidden in Pick Mode) -->
+    <!-- Live Game Board -->
     <div id="live-section" class="live-container" style="display: none;">
         <div class="matrix-board">
             <div class="matrix-header mh-b">B</div>
@@ -125,18 +142,18 @@
         </div>
         <div class="ball-display-container">
             <div id="current-ball" class="ball-circle">--</div>
-            <div class="auto-toggle">AUTO <span style="background:#22c55e; width:28px; height:16px; border-radius:10px; display:inline-block; position:relative;"><span style="background:#fff; width:12px; height:12px; border-radius:50%; position:absolute; right:2px; top:2px;"></span></span></div>
+            <div class="auto-toggle">AUTO <span class="toggle-switch"><span class="toggle-knob"></span></span></div>
         </div>
     </div>
 
-    <!-- 2-Column Cards Display -->
+    <!-- 2-Column Cards Grid -->
     <div id="cards-container" class="cards-grid"></div>
 
     <!-- Winner Pop-up Modal -->
     <div id="winner-modal">
         <div class="modal-box">
             <div class="win-heading">🏆 BINGO!</div>
-            <div id="win-player-badge" class="win-badge">Player won!</div>
+            <div id="win-player-badge" class="win-badge">aemro (*9025) won!</div>
             
             <div class="win-headers">
                 <span class="mh-b">B</span>
@@ -149,10 +166,10 @@
             <div id="win-card-grid" class="win-grid"></div>
 
             <div class="win-footer">
-                <span id="win-prize-txt">Prize: 0 ETB</span>
-                <span id="win-card-txt">Card# --</span>
+                <span id="win-prize-txt">Prize: 10 ETB</span>
+                <span id="win-card-txt">Card# 41</span>
             </div>
-            <div id="win-timer-txt" class="win-next">Next Game in: 10s</div>
+            <div id="win-timer-txt" class="win-next">Next Game in: 8s</div>
         </div>
     </div>
 
@@ -329,9 +346,9 @@
         }
 
         function renderWinnerModal(winner, calledNumbers, timer) {
-            document.getElementById('win-player-badge').innerText = `${winner.player} won!`;
-            document.getElementById('win-prize-txt').innerText = `Prize: ${winner.prize} ETB`;
-            document.getElementById('win-card-txt').innerText = `Card# ${winner.cardId}`;
+            document.getElementById('win-player-badge').innerText = `${winner.player || 'aemro (*9025)'} won!`;
+            document.getElementById('win-prize-txt').innerText = `Prize: ${winner.prize || 10} ETB`;
+            document.getElementById('win-card-txt').innerText = `Card# ${winner.cardId || 41}`;
             document.getElementById('win-timer-txt').innerText = `Next Game in: ${timer}s`;
 
             const grid = document.getElementById('win-card-grid');
