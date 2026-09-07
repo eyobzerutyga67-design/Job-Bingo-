@@ -45,7 +45,7 @@ function generateCardMatrix(cardId) {
 // Game State Variables
 let gameState = {
     status: 'WAITING', // WAITING -> STARTING -> PLAYING -> WINNER
-    timer: 45,
+    timer: 10,
     userCards: {}, // cardId -> { cardId, ownerId, userName, matrix }
     calledNumbers: [],
     currentBall: null,
