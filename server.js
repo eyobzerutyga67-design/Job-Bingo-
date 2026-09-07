@@ -5,48 +5,33 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Prevent Telegram webview caching
 app.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
     next();
 });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Mulberry32 PRNG for deterministic card generation per card ID
-function mulberry32(a) {
-    return function() {
-        let t = a += 0x6D2B79F5;
-        t = Math.imul(t ^ t >>> 15, t | 1);
-        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-        return ((t ^ t >>> 14) >>> 0) / 4294967296;
-    };
+// Fisher-Yates shuffle algorithm for complete randomness
+function shuffleArray(arr) {
+    let a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
 }
 
-// Generate unique Bingo card for any cardId (Card #1, Card #2, etc.)
-function generateBingoCard(cardId) {
-    const seed = parseInt(cardId, 10) || 1;
-    const rng = mulberry32(seed * 100003 + 7);
-
-    const getCol = (min, max) => {
-        let pool = [];
-        for (let i = min; i <= max; i++) pool.push(i);
-        let col = [];
-        for (let i = 0; i < 5; i++) {
-            let idx = Math.floor(rng() * pool.length);
-            col.push(pool.splice(idx, 1)[0]);
-        }
-        return col;
-    };
-
-    let b = getCol(1, 15);
-    let i = getCol(16, 30);
-    let n = getCol(31, 45);
-    let g = getCol(46, 60);
-    let o = getCol(61, 75);
+// Generate unique non-overlapping Bingo card
+function generateBingoCard() {
+    const makeRange = (min, max) => Array.from({length: max - min + 1}, (_, i) => min + i);
+    
+    let b = shuffleArray(makeRange(1, 15)).slice(0, 5);
+    let i = shuffleArray(makeRange(16, 30)).slice(0, 5);
+    let n = shuffleArray(makeRange(31, 45)).slice(0, 5);
+    let g = shuffleArray(makeRange(46, 60)).slice(0, 5);
+    let o = shuffleArray(makeRange(61, 75)).slice(0, 5);
 
     n[2] = "FREE";
 
@@ -57,28 +42,20 @@ function generateBingoCard(cardId) {
     return matrix;
 }
 
-// Win Checker: Horizontal, Vertical, Diagonals, and 4 Corners
 function checkBingoWin(matrix, calledNumbers) {
     if (!matrix || !Array.isArray(matrix)) return false;
     const calledSet = new Set((calledNumbers || []).map(n => Number(n)));
 
-    const isMarked = (val) => {
-        if (val === 'FREE' || val === 'F') return true;
-        return calledSet.has(Number(val));
-    };
+    const isMarked = (val) => (val === 'FREE' || val === 'F') || calledSet.has(Number(val));
 
-    // Horizontal Rows
     for (let r = 0; r < 5; r++) {
         if (matrix[r].every(val => isMarked(val))) return true;
     }
-    // Vertical Columns
     for (let c = 0; c < 5; c++) {
         if ([0,1,2,3,4].every(r => isMarked(matrix[r][c]))) return true;
     }
-    // Diagonals
     if ([0,1,2,3,4].every(idx => isMarked(matrix[idx][idx]))) return true;
     if ([0,1,2,3,4].every(idx => isMarked(matrix[idx][4 - idx]))) return true;
-    // 4 Corners
     if (isMarked(matrix[0][0]) && isMarked(matrix[0][4]) && isMarked(matrix[4][0]) && isMarked(matrix[4][4])) return true;
 
     return false;
@@ -96,26 +73,6 @@ let gameState = {
 
 let remainingBalls = [];
 
-function shuffle(array) {
-    let arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-}
-
-function resetGame() {
-    gameState.status = 'WAITING';
-    gameState.timer = 25;
-    gameState.derash = 0;
-    gameState.calledNumbers = [];
-    gameState.currentBall = null;
-    gameState.winner = null;
-    gameState.userCards = {};
-    remainingBalls = [];
-}
-
 setInterval(() => {
     if (gameState.status === 'WAITING') {
         gameState.timer--;
@@ -124,7 +81,7 @@ setInterval(() => {
                 gameState.status = 'PLAYING';
                 gameState.calledNumbers = [];
                 gameState.winner = null;
-                remainingBalls = shuffle(Array.from({ length: 75 }, (_, i) => i + 1));
+                remainingBalls = shuffleArray(Array.from({ length: 75 }, (_, i) => i + 1));
             } else {
                 gameState.timer = 25;
             }
@@ -146,12 +103,7 @@ setInterval(() => {
                 const matrix = gameState.userCards[cardId];
                 if (checkBingoWin(matrix, gameState.calledNumbers)) {
                     gameState.status = 'WINNER';
-                    gameState.winner = {
-                        player: 'Player (*9025)',
-                        prize: gameState.derash,
-                        cardId: cardId,
-                        cardMatrix: matrix
-                    };
+                    gameState.winner = { player: 'Player', prize: gameState.derash, cardId, cardMatrix: matrix };
                     gameState.timer = 10;
                     break;
                 }
@@ -161,32 +113,37 @@ setInterval(() => {
         }
     } else if (gameState.status === 'WINNER') {
         gameState.timer--;
-        if (gameState.timer <= 0) {
-            resetGame();
-        }
+        if (gameState.timer <= 0) resetGame();
     }
 }, 1500);
 
-app.get('/api/game/state', (req, res) => {
-    res.json(gameState);
-});
+function resetGame() {
+    gameState.status = 'WAITING';
+    gameState.timer = 25;
+    gameState.derash = 0;
+    gameState.calledNumbers = [];
+    gameState.currentBall = null;
+    gameState.winner = null;
+    gameState.userCards = {};
+    remainingBalls = [];
+}
+
+app.get('/api/game/state', (req, res) => res.json(gameState));
 
 app.post('/api/game/select-card', (req, res) => {
     const { cardId } = req.body;
     if (gameState.status !== 'WAITING') {
-        return res.json({ success: false, message: 'Game in progress. Wait for next round.' });
+        return res.json({ success: false, message: 'Game in progress.' });
     }
 
     const key = String(cardId);
     if (gameState.userCards[key]) {
         delete gameState.userCards[key];
     } else {
-        gameState.userCards[key] = generateBingoCard(key);
+        gameState.userCards[key] = generateBingoCard();
     }
 
-    const count = Object.keys(gameState.userCards).length;
-    gameState.derash = count * 10;
-
+    gameState.derash = Object.keys(gameState.userCards).length * 10;
     res.json({ success: true, userCards: gameState.userCards });
 });
 
