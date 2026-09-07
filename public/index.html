@@ -45,6 +45,14 @@
         /* Game Status Timer Bar */
         .timer-bar { background: #0c1527; border: 1px solid #0284c7; color: var(--cyan-accent); padding: 8px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; text-align: center; margin-bottom: 10px; }
 
+        /* Pick Cards - Compact Number Tiles (Grid 5 per row) */
+        .pick-tiles-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-height: 260px; overflow-y: auto; padding: 6px; background: #0b1322; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 12px; }
+        .card-tile { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 2px; text-align: center; font-size: 0.75rem; font-weight: 800; color: var(--cyan-accent); cursor: pointer; }
+        .card-tile.selected { background: var(--primary-blue); color: #ffffff; border-color: var(--cyan-accent); box-shadow: 0 0 8px rgba(0, 191, 255, 0.4); }
+
+        /* Section Title for Selected Cards */
+        .section-title { font-size: 0.85rem; font-weight: 800; color: var(--green-accent); margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+
         /* Live Matrix + Ball Caller Layout */
         .live-container { display: flex; gap: 10px; margin-bottom: 12px; align-items: flex-start; justify-content: space-between; }
         .matrix-board { background: var(--card-bg); border: 1px solid var(--border-color); padding: 6px; border-radius: 8px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; flex: 1.3; }
@@ -62,7 +70,7 @@
 
         /* 2-Column Bingo Cards Layout */
         .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-        .card-container { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; cursor: pointer; }
+        .card-container { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; }
         .card-container.selected { border-color: var(--primary-blue); box-shadow: 0 0 10px rgba(2, 132, 199, 0.3); }
         .card-title { color: var(--cyan-accent); font-size: 0.75rem; font-weight: 800; text-align: center; margin-bottom: 5px; }
         
@@ -70,6 +78,8 @@
         .b-cell { background: #1a2436; color: #cbd5e1; font-size: 0.65rem; font-weight: 700; padding: 5px 0; border-radius: 3px; display: flex; align-items: center; justify-content: center; aspect-ratio: 1; }
         .b-cell.free { background: var(--yellow-accent); color: #000000; font-weight: 900; font-size: 0.55rem; }
         .b-cell.called { background: var(--primary-blue); color: #ffffff; font-weight: 800; }
+
+        .empty-msg { color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 15px; border: 1px dashed var(--border-color); border-radius: 8px; margin-bottom: 15px; }
 
         /* Winner Modal Pop-up */
         #winner-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px); flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
@@ -123,14 +133,24 @@
 
     <!-- Nav Tab Switcher -->
     <div class="tab-bar">
-        <button id="tab-pick" class="tab-btn active">Pick Cards (1-500)</button>
-        <button id="tab-live" class="tab-btn">Live Game</button>
+        <button id="tab-pick" class="tab-btn active" onclick="switchTab('PICK')">Pick Cards (1-500)</button>
+        <button id="tab-live" class="tab-btn" onclick="switchTab('LIVE')">Live Game</button>
     </div>
 
     <!-- Countdown Bar -->
-    <div id="timer-bar" class="timer-bar">Next Round in: 24s</div>
+    <div id="timer-bar" class="timer-bar">Next Round in: --s</div>
 
-    <!-- Live Game Board -->
+    <!-- PICK MODE SECTION -->
+    <div id="pick-section">
+        <div id="tiles-container" class="pick-tiles-grid"></div>
+        <div class="section-title">
+            <span>MY SELECTED CARDS</span>
+            <span id="selected-count-badge" style="color:#00bfff; font-size:0.75rem;">(0)</span>
+        </div>
+        <div id="picked-cards-container" class="cards-grid"></div>
+    </div>
+
+    <!-- LIVE GAME SECTION -->
     <div id="live-section" class="live-container" style="display: none;">
         <div class="matrix-board">
             <div class="matrix-header mh-b">B</div>
@@ -145,9 +165,7 @@
             <div class="auto-toggle">AUTO <span class="toggle-switch"><span class="toggle-knob"></span></span></div>
         </div>
     </div>
-
-    <!-- 2-Column Cards Grid -->
-    <div id="cards-container" class="cards-grid"></div>
+    <div id="live-cards-container" class="cards-grid" style="display: none;"></div>
 
     <!-- Winner Pop-up Modal -->
     <div id="winner-modal">
@@ -166,16 +184,17 @@
             <div id="win-card-grid" class="win-grid"></div>
 
             <div class="win-footer">
-                <span id="win-prize-txt">Prize: 10 ETB</span>
-                <span id="win-card-txt">Card# 41</span>
+                <span id="win-prize-txt">Prize: 0 ETB</span>
+                <span id="win-card-txt">Card# --</span>
             </div>
-            <div id="win-timer-txt" class="win-next">Next Game in: 8s</div>
+            <div id="win-timer-txt" class="win-next">Next Game in: 10s</div>
         </div>
     </div>
 
     <script>
         const userId = 'user_' + Math.floor(Math.random() * 8999 + 1000);
         let selectedCards = {};
+        let currentTab = 'PICK';
 
         function initMatrixBoard() {
             const container = document.getElementById('matrix-cells-container');
@@ -189,6 +208,29 @@
                     cell.innerText = num;
                     container.appendChild(cell);
                 }
+            }
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            const tabPick = document.getElementById('tab-pick');
+            const tabLive = document.getElementById('tab-live');
+            const pickSec = document.getElementById('pick-section');
+            const liveSec = document.getElementById('live-section');
+            const liveCardsSec = document.getElementById('live-cards-container');
+
+            if (tab === 'PICK') {
+                tabPick.classList.add('active');
+                tabLive.classList.remove('active');
+                pickSec.style.display = 'block';
+                liveSec.style.display = 'none';
+                liveCardsSec.style.display = 'none';
+            } else {
+                tabPick.classList.remove('active');
+                tabLive.classList.add('active');
+                pickSec.style.display = 'none';
+                liveSec.style.display = 'flex';
+                liveCardsSec.style.display = 'grid';
             }
         }
 
@@ -225,68 +267,83 @@
             }
         }
 
-        function renderCards(status, calledNumbers) {
-            const container = document.getElementById('cards-container');
+        function renderPickTiles() {
+            const container = document.getElementById('tiles-container');
             container.innerHTML = '';
 
-            const calledSet = new Set((calledNumbers || []).map(n => String(n)));
-
-            if (status === 'WAITING') {
-                for (let i = 1; i <= 500; i++) {
-                    const cardDiv = document.createElement('div');
-                    let isMine = false;
-                    for (let k in selectedCards) {
-                        if (selectedCards[k].cardId === i && selectedCards[k].ownerId === userId) {
-                            isMine = true;
-                            break;
-                        }
-                    }
-
-                    cardDiv.className = `card-container ${isMine ? 'selected' : ''}`;
-                    cardDiv.onclick = () => selectCard(i);
-
-                    let html = `<div class="card-title">Card #${i}</div><div class="b-grid">`;
-                    
-                    let bCol = [1,2,3,4,5], iCol = [16,17,18,19,20], nCol = [31,32,'FREE',34,35], gCol = [46,47,48,49,50], oCol = [61,62,63,64,65];
-                    for (let r = 0; r < 5; r++) {
-                        let rowVals = [bCol[r], iCol[r], nCol[r], gCol[r], oCol[r]];
-                        for (let val of rowVals) {
-                            if (val === 'FREE') html += `<div class="b-cell free">FREE</div>`;
-                            else html += `<div class="b-cell">${val}</div>`;
-                        }
-                    }
-                    html += `</div>`;
-                    cardDiv.innerHTML = html;
-                    container.appendChild(cardDiv);
-                }
-            } else {
-                for (let k in selectedCards) {
-                    const cardObj = selectedCards[k];
-                    if (cardObj.ownerId !== userId) continue;
-
-                    const cardDiv = document.createElement('div');
-                    cardDiv.className = 'card-container selected';
-
-                    let html = `<div class="card-title">Card #${cardObj.cardId}</div><div class="b-grid">`;
-                    const matrix = cardObj.matrix;
-
-                    for (let r = 0; r < 5; r++) {
-                        for (let c = 0; c < 5; c++) {
-                            const val = String(matrix[r][c]);
-                            if (val === 'FREE' || val === 'F') {
-                                html += `<div class="b-cell free">FREE</div>`;
-                            } else if (calledSet.has(val)) {
-                                html += `<div class="b-cell called">${val}</div>`;
-                            } else {
-                                html += `<div class="b-cell">${val}</div>`;
-                            }
-                        }
-                    }
-                    html += `</div>`;
-                    cardDiv.innerHTML = html;
-                    container.appendChild(cardDiv);
+            let myCardIds = new Set();
+            for (let k in selectedCards) {
+                if (selectedCards[k].ownerId === userId) {
+                    myCardIds.add(selectedCards[k].cardId);
                 }
             }
+
+            for (let i = 1; i <= 500; i++) {
+                const tile = document.createElement('div');
+                const isMine = myCardIds.has(i);
+                tile.className = `card-tile ${isMine ? 'selected' : ''}`;
+                tile.innerText = `Card ${i}`;
+                tile.onclick = () => selectCard(i);
+                container.appendChild(tile);
+            }
+        }
+
+        function renderPickedCardsAtGround(calledNumbers) {
+            const pickCardsContainer = document.getElementById('picked-cards-container');
+            const liveCardsContainer = document.getElementById('live-cards-container');
+            const badge = document.getElementById('selected-count-badge');
+
+            pickCardsContainer.innerHTML = '';
+            liveCardsContainer.innerHTML = '';
+
+            const calledSet = new Set((calledNumbers || []).map(n => String(n)));
+            let myCards = [];
+
+            for (let k in selectedCards) {
+                if (selectedCards[k].ownerId === userId) {
+                    myCards.push(selectedCards[k]);
+                }
+            }
+
+            badge.innerText = `(${myCards.length})`;
+
+            if (myCards.length === 0) {
+                pickCardsContainer.innerHTML = '<div class="empty-msg">No cards selected yet. Tap any Card Number above to pick your card!</div>';
+                liveCardsContainer.innerHTML = '<div class="empty-msg">No cards selected for this round.</div>';
+                return;
+            }
+
+            myCards.forEach(cardObj => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card-container selected';
+
+                let html = `<div class="card-title">Card #${cardObj.cardId}</div><div class="b-grid">`;
+                const matrix = cardObj.matrix || [
+                    [1,16,31,46,61],
+                    [2,17,32,47,62],
+                    [3,18,'FREE',48,63],
+                    [4,19,34,49,64],
+                    [5,20,35,50,65]
+                ];
+
+                for (let r = 0; r < 5; r++) {
+                    for (let c = 0; c < 5; c++) {
+                        const val = String(matrix[r][c]);
+                        if (val === 'FREE' || val === 'F') {
+                            html += `<div class="b-cell free">FREE</div>`;
+                        } else if (calledSet.has(val)) {
+                            html += `<div class="b-cell called">${val}</div>`;
+                        } else {
+                            html += `<div class="b-cell">${val}</div>`;
+                        }
+                    }
+                }
+                html += `</div>`;
+                cardDiv.innerHTML = html;
+
+                pickCardsContainer.appendChild(cardDiv);
+                liveCardsContainer.appendChild(cardDiv.cloneNode(true));
+            });
         }
 
         async function fetchState() {
@@ -298,30 +355,15 @@
                 document.getElementById('stat-players').innerText = `${data.playerCount || 0}`;
                 document.getElementById('stat-call').innerText = `${(data.calledNumbers || []).length}/75`;
 
-                const tabPick = document.getElementById('tab-pick');
-                const tabLive = document.getElementById('tab-live');
-                const liveSec = document.getElementById('live-section');
                 const timerBar = document.getElementById('timer-bar');
 
                 if (data.status === 'WAITING') {
-                    tabPick.classList.add('active');
-                    tabLive.classList.remove('active');
-                    liveSec.style.display = 'none';
                     timerBar.innerText = `Next Round in: ${data.timer}s`;
                 } else if (data.status === 'STARTING') {
-                    tabPick.classList.remove('active');
-                    tabLive.classList.add('active');
-                    liveSec.style.display = 'none';
                     timerBar.innerText = `Starting in: ${data.timer}s`;
                 } else if (data.status === 'PLAYING') {
-                    tabPick.classList.remove('active');
-                    tabLive.classList.add('active');
-                    liveSec.style.display = 'flex';
                     timerBar.innerText = `🎮 GAME IN PROGRESS`;
                 } else if (data.status === 'WINNER') {
-                    tabPick.classList.remove('active');
-                    tabLive.classList.add('active');
-                    liveSec.style.display = 'flex';
                     timerBar.innerText = `ROUND FINISHED`;
                 }
 
@@ -333,7 +375,8 @@
 
                 selectedCards = data.userCards || {};
                 updateMatrixBoard(data.calledNumbers);
-                renderCards(data.status, data.calledNumbers);
+                renderPickTiles();
+                renderPickedCardsAtGround(data.calledNumbers);
 
                 if (data.status === 'WINNER' && data.winner) {
                     renderWinnerModal(data.winner, data.calledNumbers || [], data.timer);
@@ -348,7 +391,7 @@
         function renderWinnerModal(winner, calledNumbers, timer) {
             document.getElementById('win-player-badge').innerText = `${winner.player || 'aemro (*9025)'} won!`;
             document.getElementById('win-prize-txt').innerText = `Prize: ${winner.prize || 10} ETB`;
-            document.getElementById('win-card-txt').innerText = `Card# ${winner.cardId || 41}`;
+            document.getElementById('win-card-txt').innerText = `Card# ${winner.cardId || 1}`;
             document.getElementById('win-timer-txt').innerText = `Next Game in: ${timer}s`;
 
             const grid = document.getElementById('win-card-grid');
