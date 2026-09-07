@@ -17,7 +17,7 @@
             --cyan-accent: #00d8ff;
             --green-accent: #16a34a;
             --yellow-accent: #f59e0b;
-            --red-accent: #dc2626;
+            --red-accent: #e11d48;
             --purple-accent: #9333ea;
             --text-muted: #94a3b8;
         }
@@ -32,7 +32,7 @@
             align-items: center; justify-content: center; transition: opacity 0.4s ease;
         }
         .splash-logo-container { text-align: center; margin-bottom: 25px; }
-        .splash-crown { font-size: 3rem; margin-bottom: -10px; }
+        .splash-crown { font-size: 3.5rem; margin-bottom: -10px; }
         .splash-title { font-size: 2.2rem; font-weight: 900; background: linear-gradient(180deg, #fef08a 0%, #eab308 50%, #ca8a04 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 20px rgba(234, 179, 8, 0.4); letter-spacing: 1px; }
         .splash-sub { color: #cbd5e1; font-size: 0.9rem; margin-top: 15px; font-weight: 600; }
         .splash-progress-bg { width: 180px; height: 5px; background: #1e293b; border-radius: 10px; overflow: hidden; margin-top: 12px; }
@@ -55,9 +55,10 @@
         .status-win { color: #22c55e; }
 
         /* 500 Cards Picking Grid */
-        .pick-grid-500 { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; max-height: calc(100vh - 150px); overflow-y: auto; padding: 4px; background: #050912; border: 1px solid var(--border-color); border-radius: 8px; }
-        .pick-tile { background: #1e293b; color: #cbd5e1; border-radius: 4px; padding: 8px 0; text-align: center; font-size: 0.68rem; font-weight: 800; cursor: pointer; border: 1px solid #0f172a; }
-        .pick-tile.selected { background: var(--red-accent) !important; color: #ffffff !important; border-color: #f87171 !important; box-shadow: 0 0 6px rgba(220, 38, 38, 0.6); }
+        .pick-grid-500 { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; max-height: calc(100vh - 140px); overflow-y: auto; padding: 4px; background: #050912; border: 1px solid var(--border-color); border-radius: 8px; }
+        .pick-tile { background: #1e293b; color: #cbd5e1; border-radius: 4px; padding: 8px 0; text-align: center; font-size: 0.68rem; font-weight: 800; cursor: pointer; border: 1px solid #0f172a; transition: background 0.15s ease, transform 0.1s ease; }
+        .pick-tile:active { transform: scale(0.92); }
+        .pick-tile.selected { background: var(--red-accent) !important; color: #ffffff !important; border-color: #f43f5e !important; box-shadow: 0 0 8px rgba(225, 29, 72, 0.8); font-weight: 900; }
 
         /* Live Game Section */
         .live-layout { display: flex; gap: 8px; margin-top: 4px; }
@@ -230,19 +231,20 @@
         }
 
         let userName = tgUser ? (tgUser.first_name || 'Player') : 'aemro (*9025)';
+        let myLocallySelected = new Set();
         let selectedCards = {};
 
-        // Run Splash animation on load
+        // Run Splash animation
         window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => { document.getElementById('splash-bar').style.width = '100%'; }, 100);
             setTimeout(() => {
                 const splash = document.getElementById('splash-screen');
                 splash.style.opacity = '0';
                 setTimeout(() => splash.style.display = 'none', 400);
-            }, 1400);
+            }, 1200);
         });
 
-        // Initialize 1-75 vertical board layout
+        // Initialize 1-75 board
         function initVerticalMatrixBoard() {
             const container = document.getElementById('matrix-v-cells');
             container.innerHTML = '';
@@ -259,7 +261,7 @@
             }
         }
 
-        // Initialize 1-500 picking tiles grid
+        // Initialize 1-500 card grid
         function init500PickGrid() {
             const container = document.getElementById('grid-500');
             container.innerHTML = '';
@@ -273,11 +275,22 @@
             }
         }
 
+        // Instant local toggle + server sync
         async function selectCard(cardId) {
-            try {
-                const tile = document.getElementById(`pick-tile-${cardId}`);
-                if (tile) tile.classList.toggle('selected');
+            const tile = document.getElementById(`pick-tile-${cardId}`);
+            
+            // Immediate visual feedback on click
+            if (myLocallySelected.has(cardId)) {
+                myLocallySelected.delete(cardId);
+                if (tile) tile.classList.remove('selected');
+            } else {
+                myLocallySelected.add(cardId);
+                if (tile) tile.classList.add('selected');
+            }
+            
+            document.getElementById('my-cards-count-txt').innerText = `${myLocallySelected.size} ዝግ`;
 
+            try {
                 const res = await fetch('/api/game/select-card', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -287,27 +300,37 @@
                 if (data.success) {
                     selectedCards = data.userCards || {};
                     updatePickedCardHighlights();
-                } else if (data.message) {
-                    alert(data.message);
-                    fetchState();
+                } else {
+                    // Rollback if server rejected
+                    if (myLocallySelected.has(cardId)) {
+                        myLocallySelected.delete(cardId);
+                        if (tile) tile.classList.remove('selected');
+                    } else {
+                        myLocallySelected.add(cardId);
+                        if (tile) tile.classList.add('selected');
+                    }
+                    if (data.message) alert(data.message);
                 }
             } catch (e) {
-                console.error(e);
+                console.error("Card select error:", e);
             }
         }
 
         function updatePickedCardHighlights() {
-            let myCardIds = new Set();
+            let serverMyCards = new Set();
             for (let k in selectedCards) {
                 if (String(selectedCards[k].ownerId) === String(userId)) {
-                    myCardIds.add(Number(selectedCards[k].cardId));
+                    serverMyCards.add(Number(selectedCards[k].cardId));
                 }
             }
+
+            // Sync local set with server
+            myLocallySelected = serverMyCards;
 
             for (let i = 1; i <= 500; i++) {
                 const tile = document.getElementById(`pick-tile-${i}`);
                 if (tile) {
-                    if (myCardIds.has(i)) {
+                    if (myLocallySelected.has(i)) {
                         tile.classList.add('selected');
                     } else {
                         tile.classList.remove('selected');
@@ -315,7 +338,7 @@
                 }
             }
 
-            document.getElementById('my-cards-count-txt').innerText = `${myCardIds.size} ዝግ`;
+            document.getElementById('my-cards-count-txt').innerText = `${myLocallySelected.size} ዝግ`;
         }
 
         function updateVerticalMatrixBoard(calledNumbers) {
