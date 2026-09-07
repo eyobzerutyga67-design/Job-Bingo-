@@ -8,104 +8,66 @@ const server = http.createServer(app);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Standard 5x5 Bingo Matrix Generation
-function generateBingoCard(cardId) {
-    const seed = parseInt(cardId, 10) || 1;
+// Seeded random number generator for consistent unique cards per ID
+function getRandomNumbers(min, max, count, seedStr) {
+    let numbers = [];
+    for (let i = min; i <= max; i++) numbers.push(i);
     
-    const getCol = (min, max, offset) => {
-        let nums = [];
-        for (let i = min; i <= max; i++) nums.push(i);
-        let result = [];
-        for (let i = 0; i < 5; i++) {
-            let idx = (seed * 13 + offset + i * 7) % nums.length;
-            result.push(nums.splice(idx, 1)[0]);
-        }
-        return result;
-    };
+    // Simple hash for seed
+    let hash = 0;
+    for (let i = 0; i < seedStr.length; i++) {
+        hash = (hash << 5) - hash + seedStr.charCodeAt(i);
+        hash |= 0;
+    }
 
-    let b = getCol(1, 15, 1);
-    let i = getCol(16, 30, 2);
-    let n = getCol(31, 45, 3);
-    let g = getCol(46, 60, 4);
-    let o = getCol(61, 75, 5);
+    let result = [];
+    for (let i = 0; i < count; i++) {
+        let index = Math.abs(hash + i * 17) % numbers.length;
+        result.push(numbers.splice(index, 1)[0]);
+    }
+    return result.sort((a, b) => a - b);
+}
+
+function generateBingoCard(cardId) {
+    const idStr = String(cardId);
+    let b = getRandomNumbers(1, 15, 5, idStr + '-B');
+    let i = getRandomNumbers(16, 30, 5, idStr + '-I');
+    let n = getRandomNumbers(31, 45, 5, idStr + '-N');
+    let g = getRandomNumbers(46, 60, 5, idStr + '-G');
+    let o = getRandomNumbers(61, 75, 5, idStr + '-O');
 
     n[2] = "FREE";
 
     let matrix = [];
-    for (let r = 0; r < 5; r++) {
-        matrix.push([b[r], i[r], n[r], g[r], o[r]]);
+    for (let row = 0; row < 5; row++) {
+        matrix.push([b[row], i[row], n[row], g[row], o[row]]);
     }
     return matrix;
 }
 
-// Strict Bingo Win Checker
 function checkBingoWin(matrix, calledNumbers) {
     if (!matrix || !Array.isArray(matrix)) return false;
-
-    const calledSet = new Set(calledNumbers.map(n => Number(n)));
+    const calledSet = new Set((calledNumbers || []).map(n => Number(n)));
 
     const isMarked = (val) => {
         if (val === 'FREE' || val === 'F') return true;
         return calledSet.has(Number(val));
     };
 
-    // 1. Horizontal Rows (Must match ALL 5 cells)
+    // Rows
     for (let r = 0; r < 5; r++) {
-        if (
-            isMarked(matrix[r][0]) &&
-            isMarked(matrix[r][1]) &&
-            isMarked(matrix[r][2]) &&
-            isMarked(matrix[r][3]) &&
-            isMarked(matrix[r][4])
-        ) {
-            return true;
-        }
+        if ([0,1,2,3,4].every(c => isMarked(matrix[r][c]))) return true;
     }
-
-    // 2. Vertical Columns (Must match ALL 5 cells)
+    // Columns
     for (let c = 0; c < 5; c++) {
-        if (
-            isMarked(matrix[0][c]) &&
-            isMarked(matrix[1][c]) &&
-            isMarked(matrix[2][c]) &&
-            isMarked(matrix[3][c]) &&
-            isMarked(matrix[4][c])
-        ) {
-            return true;
-        }
+        if ([0,1,2,3,4].every(r => isMarked(matrix[r][c]))) return true;
     }
-
-    // 3. Main Diagonal
-    if (
-        isMarked(matrix[0][0]) &&
-        isMarked(matrix[1][1]) &&
-        isMarked(matrix[2][2]) &&
-        isMarked(matrix[3][3]) &&
-        isMarked(matrix[4][4])
-    ) {
-        return true;
-    }
-
-    // 4. Anti Diagonal
-    if (
-        isMarked(matrix[0][4]) &&
-        isMarked(matrix[1][3]) &&
-        isMarked(matrix[2][2]) &&
-        isMarked(matrix[3][1]) &&
-        isMarked(matrix[4][0])
-    ) {
-        return true;
-    }
-
-    // 5. Four Corners
-    if (
-        isMarked(matrix[0][0]) &&
-        isMarked(matrix[0][4]) &&
-        isMarked(matrix[4][0]) &&
-        isMarked(matrix[4][4])
-    ) {
-        return true;
-    }
+    // Main Diagonal
+    if ([0,1,2,3,4].every(i => isMarked(matrix[i][i]))) return true;
+    // Anti Diagonal
+    if ([0,1,2,3,4].every(i => isMarked(matrix[i][4 - i]))) return true;
+    // 4 Corners
+    if (isMarked(matrix[0][0]) && isMarked(matrix[0][4]) && isMarked(matrix[4][0]) && isMarked(matrix[4][4])) return true;
 
     return false;
 }
@@ -136,16 +98,14 @@ setInterval(() => {
     if (gameState.status === 'WAITING') {
         gameState.timer--;
         if (gameState.timer <= 0) {
-            gameState.status = 'CALCULATING';
-            gameState.timer = 3;
-        }
-    } else if (gameState.status === 'CALCULATING') {
-        gameState.timer--;
-        if (gameState.timer <= 0) {
-            gameState.status = 'PLAYING';
-            gameState.calledNumbers = [];
-            gameState.winner = null;
-            remainingBalls = shuffle(Array.from({ length: 75 }, (_, i) => i + 1));
+            if (Object.keys(gameState.userCards).length > 0) {
+                gameState.status = 'PLAYING';
+                gameState.calledNumbers = [];
+                gameState.winner = null;
+                remainingBalls = shuffle(Array.from({ length: 75 }, (_, index) => index + 1));
+            } else {
+                gameState.timer = 30; // Reset countdown if no cards selected
+            }
         }
     } else if (gameState.status === 'PLAYING') {
         if (remainingBalls.length > 0) {
@@ -160,14 +120,13 @@ setInterval(() => {
 
             gameState.currentBall = { letter, number: nextNum };
 
-            // Evaluate cards strictly
             for (let cardId in gameState.userCards) {
                 const matrix = gameState.userCards[cardId];
                 if (checkBingoWin(matrix, gameState.calledNumbers)) {
                     gameState.status = 'WINNER';
                     gameState.winner = {
-                        player: 'aemro (*9025)',
-                        prize: gameState.derash || 10,
+                        player: 'Player',
+                        prize: gameState.derash,
                         cardId: cardId,
                         cardMatrix: matrix
                     };
@@ -176,27 +135,26 @@ setInterval(() => {
                 }
             }
         } else {
-            gameState.status = 'WAITING';
-            gameState.timer = 30;
-            gameState.winner = null;
-            gameState.calledNumbers = [];
-            gameState.userCards = {};
-            gameState.playersCount = 0;
-            gameState.derash = 0;
+            resetToWaiting();
         }
     } else if (gameState.status === 'WINNER') {
         gameState.timer--;
         if (gameState.timer <= 0) {
-            gameState.status = 'WAITING';
-            gameState.timer = 30;
-            gameState.winner = null;
-            gameState.calledNumbers = [];
-            gameState.userCards = {};
-            gameState.playersCount = 0;
-            gameState.derash = 0;
+            resetToWaiting();
         }
     }
 }, 1000);
+
+function resetToWaiting() {
+    gameState.status = 'WAITING';
+    gameState.timer = 30;
+    gameState.winner = null;
+    gameState.calledNumbers = [];
+    gameState.userCards = {};
+    gameState.playersCount = 0;
+    gameState.derash = 0;
+    gameState.currentBall = null;
+}
 
 app.get('/api/game/state', (req, res) => {
     res.json(gameState);
@@ -205,7 +163,7 @@ app.get('/api/game/state', (req, res) => {
 app.post('/api/game/select-card', (req, res) => {
     const { cardId } = req.body;
     if (gameState.status !== 'WAITING') {
-        return res.json({ success: false, message: 'Game in progress. Wait for next round.' });
+        return res.json({ success: false, message: 'Game in progress. Please wait for next round.' });
     }
 
     const key = String(cardId);
@@ -215,11 +173,12 @@ app.post('/api/game/select-card', (req, res) => {
         gameState.userCards[key] = generateBingoCard(key);
     }
 
-    gameState.playersCount = Object.keys(gameState.userCards).length > 0 ? 1 : 0;
-    gameState.derash = Object.keys(gameState.userCards).length * 10;
+    const totalSelected = Object.keys(gameState.userCards).length;
+    gameState.playersCount = totalSelected > 0 ? 1 : 0;
+    gameState.derash = totalSelected * 10;
 
     res.json({ success: true, userCards: gameState.userCards });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
