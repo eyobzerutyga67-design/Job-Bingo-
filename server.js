@@ -8,43 +8,35 @@ const server = http.createServer(app);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Seeded random number generator for consistent unique cards per ID
-function getRandomNumbers(min, max, count, seedStr) {
-    let numbers = [];
-    for (let i = min; i <= max; i++) numbers.push(i);
-    
-    // Simple hash for seed
-    let hash = 0;
-    for (let i = 0; i < seedStr.length; i++) {
-        hash = (hash << 5) - hash + seedStr.charCodeAt(i);
-        hash |= 0;
+// Generate 5 unique random numbers for column range
+function getRandomCol(min, max, count = 5) {
+    let pool = [];
+    for (let i = min; i <= max; i++) pool.push(i);
+    for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-
-    let result = [];
-    for (let i = 0; i < count; i++) {
-        let index = Math.abs(hash + i * 17) % numbers.length;
-        result.push(numbers.splice(index, 1)[0]);
-    }
-    return result.sort((a, b) => a - b);
+    return pool.slice(0, count);
 }
 
-function generateBingoCard(cardId) {
-    const idStr = String(cardId);
-    let b = getRandomNumbers(1, 15, 5, idStr + '-B');
-    let i = getRandomNumbers(16, 30, 5, idStr + '-I');
-    let n = getRandomNumbers(31, 45, 5, idStr + '-N');
-    let g = getRandomNumbers(46, 60, 5, idStr + '-G');
-    let o = getRandomNumbers(61, 75, 5, idStr + '-O');
+// Generate unique Bingo card matrix
+function generateBingoCard() {
+    let b = getRandomCol(1, 15);
+    let i = getRandomCol(16, 30);
+    let n = getRandomCol(31, 45);
+    let g = getRandomCol(46, 60);
+    let o = getRandomCol(61, 75);
 
     n[2] = "FREE";
 
     let matrix = [];
-    for (let row = 0; row < 5; row++) {
-        matrix.push([b[row], i[row], n[row], g[row], o[row]]);
+    for (let r = 0; r < 5; r++) {
+        matrix.push([b[r], i[r], n[r], g[r], o[r]]);
     }
     return matrix;
 }
 
+// Strict Win Detection
 function checkBingoWin(matrix, calledNumbers) {
     if (!matrix || !Array.isArray(matrix)) return false;
     const calledSet = new Set((calledNumbers || []).map(n => Number(n)));
@@ -54,19 +46,19 @@ function checkBingoWin(matrix, calledNumbers) {
         return calledSet.has(Number(val));
     };
 
-    // Rows
+    // 1. Rows
     for (let r = 0; r < 5; r++) {
         if ([0,1,2,3,4].every(c => isMarked(matrix[r][c]))) return true;
     }
-    // Columns
+    // 2. Columns
     for (let c = 0; c < 5; c++) {
         if ([0,1,2,3,4].every(r => isMarked(matrix[r][c]))) return true;
     }
-    // Main Diagonal
-    if ([0,1,2,3,4].every(i => isMarked(matrix[i][i]))) return true;
-    // Anti Diagonal
-    if ([0,1,2,3,4].every(i => isMarked(matrix[i][4 - i]))) return true;
-    // 4 Corners
+    // 3. Diagonals
+    if ([0,1,2,3,4].every(idx => isMarked(matrix[idx][idx]))) return true;
+    if ([0,1,2,3,4].every(idx => isMarked(matrix[idx][4 - idx]))) return true;
+
+    // 4. Four Corners
     if (isMarked(matrix[0][0]) && isMarked(matrix[0][4]) && isMarked(matrix[4][0]) && isMarked(matrix[4][4])) return true;
 
     return false;
@@ -74,9 +66,8 @@ function checkBingoWin(matrix, calledNumbers) {
 
 let gameState = {
     status: 'WAITING',
-    timer: 30,
+    timer: 20,
     derash: 0,
-    playersCount: 0,
     calledNumbers: [],
     currentBall: null,
     winner: null,
@@ -94,6 +85,17 @@ function shuffle(array) {
     return arr;
 }
 
+function resetGame() {
+    gameState.status = 'WAITING';
+    gameState.timer = 20;
+    gameState.derash = 0;
+    gameState.calledNumbers = [];
+    gameState.currentBall = null;
+    gameState.winner = null;
+    gameState.userCards = {};
+    remainingBalls = [];
+}
+
 setInterval(() => {
     if (gameState.status === 'WAITING') {
         gameState.timer--;
@@ -102,9 +104,9 @@ setInterval(() => {
                 gameState.status = 'PLAYING';
                 gameState.calledNumbers = [];
                 gameState.winner = null;
-                remainingBalls = shuffle(Array.from({ length: 75 }, (_, index) => index + 1));
+                remainingBalls = shuffle(Array.from({ length: 75 }, (_, i) => i + 1));
             } else {
-                gameState.timer = 30; // Reset countdown if no cards selected
+                gameState.timer = 20;
             }
         }
     } else if (gameState.status === 'PLAYING') {
@@ -125,7 +127,7 @@ setInterval(() => {
                 if (checkBingoWin(matrix, gameState.calledNumbers)) {
                     gameState.status = 'WINNER';
                     gameState.winner = {
-                        player: 'Player',
+                        player: 'Player (*9025)',
                         prize: gameState.derash,
                         cardId: cardId,
                         cardMatrix: matrix
@@ -135,26 +137,15 @@ setInterval(() => {
                 }
             }
         } else {
-            resetToWaiting();
+            resetGame();
         }
     } else if (gameState.status === 'WINNER') {
         gameState.timer--;
         if (gameState.timer <= 0) {
-            resetToWaiting();
+            resetGame();
         }
     }
-}, 1000);
-
-function resetToWaiting() {
-    gameState.status = 'WAITING';
-    gameState.timer = 30;
-    gameState.winner = null;
-    gameState.calledNumbers = [];
-    gameState.userCards = {};
-    gameState.playersCount = 0;
-    gameState.derash = 0;
-    gameState.currentBall = null;
-}
+}, 1500);
 
 app.get('/api/game/state', (req, res) => {
     res.json(gameState);
@@ -170,15 +161,14 @@ app.post('/api/game/select-card', (req, res) => {
     if (gameState.userCards[key]) {
         delete gameState.userCards[key];
     } else {
-        gameState.userCards[key] = generateBingoCard(key);
+        gameState.userCards[key] = generateBingoCard();
     }
 
-    const totalSelected = Object.keys(gameState.userCards).length;
-    gameState.playersCount = totalSelected > 0 ? 1 : 0;
-    gameState.derash = totalSelected * 10;
+    const totalCards = Object.keys(gameState.userCards).length;
+    gameState.derash = totalCards * 10;
 
     res.json({ success: true, userCards: gameState.userCards });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
