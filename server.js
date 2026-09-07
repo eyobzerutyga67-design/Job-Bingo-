@@ -5,6 +5,7 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
+// Prevent Telegram webview caching
 app.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.setHeader('Pragma', 'no-cache');
@@ -15,80 +16,48 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Hardcoded 10 unique standard Bingo card layouts
-const BINGO_CARDS = {
-    "1": [
-        [5, 18, 33, 52, 67],
-        [12, 24, 40, 48, 71],
-        [2, 29, "FREE", 59, 63],
-        [9, 16, 37, 46, 75],
-        [14, 27, 42, 55, 68]
-    ],
-    "2": [
-        [8, 22, 35, 50, 61],
-        [1, 19, 44, 57, 73],
-        [11, 26, "FREE", 47, 69],
-        [4, 30, 31, 54, 64],
-        [15, 17, 39, 58, 70]
-    ],
-    "3": [
-        [3, 21, 38, 49, 66],
-        [10, 25, 32, 53, 74],
-        [7, 20, "FREE", 56, 62],
-        [13, 28, 41, 47, 72],
-        [6, 16, 45, 60, 68]
-    ],
-    "4": [
-        [14, 17, 36, 51, 65],
-        [4, 29, 43, 58, 70],
-        [9, 23, "FREE", 46, 75],
-        [1, 20, 34, 59, 63],
-        [11, 27, 40, 52, 69]
-    ],
-    "5": [
-        [2, 26, 31, 55, 62],
-        [15, 18, 45, 48, 72],
-        [6, 22, "FREE", 54, 67],
-        [10, 30, 37, 60, 71],
-        [8, 24, 42, 49, 64]
-    ],
-    "6": [
-        [12, 19, 41, 53, 74],
-        [7, 28, 35, 47, 66],
-        [3, 21, "FREE", 57, 68],
-        [13, 25, 39, 50, 73],
-        [5, 16, 33, 56, 61]
-    ],
-    "7": [
-        [9, 30, 32, 58, 69],
-        [11, 23, 38, 52, 64],
-        [1, 17, "FREE", 48, 75],
-        [15, 26, 44, 51, 67],
-        [4, 22, 36, 59, 70]
-    ],
-    "8": [
-        [6, 24, 40, 46, 63],
-        [13, 20, 34, 56, 72],
-        [10, 29, "FREE", 50, 65],
-        [2, 18, 43, 54, 71],
-        [8, 27, 37, 60, 66]
-    ],
-    "9": [
-        [1, 28, 37, 57, 70],
-        [5, 21, 42, 49, 68],
-        [14, 25, "FREE", 53, 61],
-        [7, 19, 35, 58, 74],
-        [12, 30, 45, 46, 62]
-    ],
-    "10": [
-        [10, 16, 39, 54, 67],
-        [3, 27, 33, 60, 75],
-        [8, 22, "FREE", 51, 64],
-        [15, 24, 41, 47, 69],
-        [2, 18, 38, 55, 73]
-    ]
-};
+// Mulberry32 PRNG for deterministic card generation per card ID
+function mulberry32(a) {
+    return function() {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
 
+// Generate unique Bingo card for any cardId (Card #1, Card #2, etc.)
+function generateBingoCard(cardId) {
+    const seed = parseInt(cardId, 10) || 1;
+    const rng = mulberry32(seed * 100003 + 7);
+
+    const getCol = (min, max) => {
+        let pool = [];
+        for (let i = min; i <= max; i++) pool.push(i);
+        let col = [];
+        for (let i = 0; i < 5; i++) {
+            let idx = Math.floor(rng() * pool.length);
+            col.push(pool.splice(idx, 1)[0]);
+        }
+        return col;
+    };
+
+    let b = getCol(1, 15);
+    let i = getCol(16, 30);
+    let n = getCol(31, 45);
+    let g = getCol(46, 60);
+    let o = getCol(61, 75);
+
+    n[2] = "FREE";
+
+    let matrix = [];
+    for (let row = 0; row < 5; row++) {
+        matrix.push([b[row], i[row], n[row], g[row], o[row]]);
+    }
+    return matrix;
+}
+
+// Win Checker: Horizontal, Vertical, Diagonals, and 4 Corners
 function checkBingoWin(matrix, calledNumbers) {
     if (!matrix || !Array.isArray(matrix)) return false;
     const calledSet = new Set((calledNumbers || []).map(n => Number(n)));
@@ -106,11 +75,10 @@ function checkBingoWin(matrix, calledNumbers) {
     for (let c = 0; c < 5; c++) {
         if ([0,1,2,3,4].every(r => isMarked(matrix[r][c]))) return true;
     }
-    // Main Diagonal
+    // Diagonals
     if ([0,1,2,3,4].every(idx => isMarked(matrix[idx][idx]))) return true;
-    // Anti Diagonal
     if ([0,1,2,3,4].every(idx => isMarked(matrix[idx][4 - idx]))) return true;
-    // Four Corners
+    // 4 Corners
     if (isMarked(matrix[0][0]) && isMarked(matrix[0][4]) && isMarked(matrix[4][0]) && isMarked(matrix[4][4])) return true;
 
     return false;
@@ -213,9 +181,7 @@ app.post('/api/game/select-card', (req, res) => {
     if (gameState.userCards[key]) {
         delete gameState.userCards[key];
     } else {
-        if (BINGO_CARDS[key]) {
-            gameState.userCards[key] = BINGO_CARDS[key];
-        }
+        gameState.userCards[key] = generateBingoCard(key);
     }
 
     const count = Object.keys(gameState.userCards).length;
