@@ -3,84 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Bingo</title>
+    <title>Best Bingo</title>
     <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #121212; color: #ffffff; margin: 0; padding: 10px; text-align: center; }
-        .logo { width: 100%; max-width: 180px; border-radius: 12px; margin: 0 auto 8px; display: block; box-shadow: 0 4px 15px rgba(255,100,0,0.3); }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
+        body { background-color: #070b15; color: #ffffff; padding: 10px; text-align: center; }
+
+        .logo { width: 100%; max-width: 180px; border-radius: 12px; margin: 0 auto 10px; display: block; box-shadow: 0 4px 15px rgba(255,100,0,0.3); }
+
+        /* Top Bar */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 4px; }
+        .btn-refresh { background: #0284c7; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer; text-transform: uppercase; }
+        .balance-txt { color: #22c55e; font-weight: bold; font-size: 0.85rem; }
+        .amharic-badge { background: #854d0e; color: #fef08a; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; }
+
+        /* Stat Grid */
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+        .stat-box { background: #111827; border: 1px solid #1f2937; padding: 8px 2px; border-radius: 8px; }
+        .stat-label { font-size: 0.65rem; color: #9ca3af; margin-bottom: 2px; }
+        .stat-val { font-size: 0.85rem; font-weight: bold; color: #ffffff; }
+
+        /* Nav Tabs */
+        .tab-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+        .tab-btn { background: #1f2937; color: #9ca3af; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; cursor: pointer; }
+        .tab-btn.active { background: #0284c7; color: #ffffff; }
+
+        /* Countdown Bar */
+        .timer-bar { background: #0f172a; border: 1px solid #0284c7; color: #38bdf8; padding: 8px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; margin-bottom: 12px; }
+
+        /* Live Section */
+        .live-container { display: flex; gap: 10px; margin-bottom: 12px; align-items: flex-start; justify-content: center; }
         
-        .status-bar { font-size: 0.85rem; color: #fff; background: #1e1e1e; padding: 8px; border-radius: 8px; border: 1px solid #333; margin-bottom: 8px; font-weight: bold; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 5px; }
-        .status-bar span { background: #2a2a2a; padding: 4px 8px; border-radius: 4px; border: 1px solid #444; }
+        /* 5x15 Matrix Caller Board */
+        .matrix-board { background: #111827; border: 1px solid #1f2937; padding: 6px; border-radius: 8px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; flex: 1.2; max-width: 210px; }
+        .matrix-header { font-size: 0.7rem; font-weight: bold; padding: 2px 0; }
+        .mh-b { color: #ef4444; } .mh-i { color: #38bdf8; } .mh-n { color: #f59e0b; } .mh-g { color: #22c55e; } .mh-o { color: #a855f7; }
+        .matrix-cell { font-size: 0.6rem; padding: 3px 0; background: #1f2937; color: #4b5563; border-radius: 2px; font-weight: bold; }
+        .matrix-cell.called { background: #0284c7; color: #ffffff; }
 
-        .current-ball { font-size: 2.2rem; font-weight: bold; margin: 6px 0; min-height: 48px; }
+        /* Ball Call Display */
+        .ball-display-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 15px; }
+        .ball-circle { width: 75px; height: 75px; border-radius: 50%; background: #f59e0b; border: 4px solid #fef08a; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: bold; color: #000000; box-shadow: 0 0 15px rgba(245, 158, 11, 0.5); margin-bottom: 10px; }
+        .auto-toggle { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: bold; color: #22c55e; }
 
-        .my-selection-bar { background: #0056b3; color: #fff; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 0.85rem; margin-bottom: 10px; }
+        /* 2-Column Cards Grid */
+        .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+        .card-container { background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 6px; cursor: pointer; }
+        .card-container.selected { border-color: #0284c7; box-shadow: 0 0 8px rgba(2, 132, 199, 0.4); }
+        .card-title { color: #38bdf8; font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; }
+        
+        .b-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+        .b-cell { background: #1f2937; color: #d1d5db; font-size: 0.65rem; font-weight: bold; padding: 6px 0; border-radius: 3px; display: flex; align-items: center; justify-content: center; }
+        .b-cell.free { background: #f59e0b; color: #000000; font-weight: bold; }
+        .b-cell.called { background: #22c55e; color: #ffffff; }
 
-        .caller-board-title { font-size: 0.8rem; font-weight: bold; color: #aaa; margin: 5px 0 3px; text-transform: uppercase; }
-        .caller-board { display: grid; grid-template-columns: repeat(15, 1fr); gap: 2px; background: #1a1a1a; padding: 6px; border-radius: 8px; border: 1px solid #333; margin-bottom: 12px; }
-        .ball-num { font-size: 0.65rem; padding: 4px 0; background: #262626; color: #666; border-radius: 2px; font-weight: bold; }
-        .ball-num.called { background: #28a745; color: #ffffff; font-weight: bold; box-shadow: 0 0 5px rgba(40,167,69,0.8); }
+        /* Winner Modal */
+        #winner-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); flex-direction: column; justify-content: center; align-items: center; z-index: 999; }
+        .modal-box { background: #111827; border: 2px solid #8b5cf6; border-radius: 12px; padding: 15px; width: 90%; max-width: 320px; box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
+        .win-heading { color: #ffffff; font-size: 1.3rem; margin-bottom: 6px; font-weight: bold; }
+        .win-badge { background: #22c55e; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; margin-bottom: 10px; display: inline-block; }
+        
+        .win-headers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 4px; font-weight: bold; font-size: 0.85rem; }
+        .win-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 10px; }
+        .win-cell { font-size: 0.75rem; font-weight: bold; padding: 8px 0; border-radius: 4px; color: #ffffff; }
+        .win-cell.hit { background: #22c55e; }
+        .win-cell.miss { background: #ef4444; }
 
-        .card-picker-box { max-height: 220px; overflow-y: auto; background: #1a1a1a; padding: 8px; border-radius: 8px; border: 1px solid #333; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 15px; }
-        .pick-btn { background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 6px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
-        .pick-btn.selected { background: #28a745; border-color: #1e7e34; color: #fff; box-shadow: 0 0 8px rgba(40,167,69,0.7); }
-
-        .bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; max-width: 320px; margin: 0 auto 15px; }
-        .b-header { font-weight: bold; padding: 6px 0; border-radius: 4px; color: #fff; font-size: 1rem; }
-        .b-header.b-green { background: #28a745; }
-        .b-header.b-yellow { background: #ffc107; color: #000; }
-        .b-header.b-red { background: #dc3545; }
-        .b-header.b-blue { background: #007bff; }
-
-        .cell { background: #222; border: 1px solid #333; padding: 8px 0; font-weight: bold; font-size: 0.9rem; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
-        .cell.called { background: #28a745; color: #fff; border-color: #1e7e34; font-weight: bold; }
-        .cell.free { background: #ffc107; color: #000; font-weight: bold; }
-        .cell.uncalled { background: #2a2a2a; color: #aaa; }
-
-        #winner-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); flex-direction: column; justify-content: center; align-items: center; z-index: 999; }
-        .modal-content { background: #1e1e1e; border: 1px solid #444; padding: 15px; border-radius: 10px; width: 92%; max-width: 340px; }
-        .win-title { color: #28a745; font-size: 1.4rem; margin: 0 0 5px; }
+        .win-footer { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: bold; color: #22c55e; margin-bottom: 6px; }
+        .win-next { color: #f59e0b; font-size: 0.8rem; font-weight: bold; }
     </style>
 </head>
 <body>
 
+    <!-- Logo Image -->
     <img src="/logo.png" alt="Job Bingo Logo" class="logo" onerror="this.style.display='none'">
-    
-    <div class="status-bar">
-        <span id="stat-mode">WAITING</span>
-        <span id="stat-players">👥 Players: 0</span>
-        <span id="stat-cards">🎴 Cards: 0</span>
-        <span id="stat-derash">💰 Prize: 0 ETB</span>
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <button class="btn-refresh" onclick="fetchState()">REFRESH</button>
+        <span class="balance-txt">BALANCE: 0 ETB</span>
+        <span class="amharic-badge">ስአት ገላዉ 1000 ሶስ አ</span>
     </div>
 
-    <div id="current-ball" class="current-ball">--</div>
+    <!-- Stat Grid -->
+    <div class="stat-grid">
+        <div class="stat-box">
+            <div class="stat-label">Derash</div>
+            <div id="stat-derash" class="stat-val">0 ETB</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Players</div>
+            <div id="stat-players" class="stat-val">0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Stake</div>
+            <div class="stat-val">10 ETB</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Call</div>
+            <div id="stat-call" class="stat-val">0/75</div>
+        </div>
+    </div>
 
-    <div id="selection-summary" class="my-selection-bar">Your Picked Cards: None (Max 4)</div>
+    <!-- Nav Tabs -->
+    <div class="tab-bar">
+        <button id="tab-pick" class="tab-btn active">Pick Cards (1-500)</button>
+        <button id="tab-live" class="tab-btn">Live Game</button>
+    </div>
 
-    <div class="caller-board-title">75 Ball Caller Board</div>
-    <div id="caller-board" class="caller-board"></div>
+    <!-- Countdown Bar -->
+    <div id="timer-bar" class="timer-bar">Next Round in: 45s</div>
 
-    <div id="picker-container" class="card-picker-box"></div>
-    
-    <div id="active-cards-container"></div>
+    <!-- Live Game Board (Hidden in Pick Mode) -->
+    <div id="live-section" class="live-container" style="display: none;">
+        <div class="matrix-board">
+            <div class="matrix-header mh-b">B</div>
+            <div class="matrix-header mh-i">I</div>
+            <div class="matrix-header mh-n">N</div>
+            <div class="matrix-header mh-g">G</div>
+            <div class="matrix-header mh-o">O</div>
+            <div id="matrix-cells-container" style="display: contents;"></div>
+        </div>
+        <div class="ball-display-container">
+            <div id="current-ball" class="ball-circle">--</div>
+            <div class="auto-toggle">AUTO <span style="background:#22c55e; width:28px; height:16px; border-radius:10px; display:inline-block; position:relative;"><span style="background:#fff; width:12px; height:12px; border-radius:50%; position:absolute; right:2px; top:2px;"></span></span></div>
+        </div>
+    </div>
 
+    <!-- 2-Column Cards Display -->
+    <div id="cards-container" class="cards-grid"></div>
+
+    <!-- Winner Pop-up Modal -->
     <div id="winner-modal">
-        <div class="modal-content">
-            <h2 id="win-player-name" class="win-title">Player Won!</h2>
-            <p id="win-prize" style="font-weight:bold; color:#00d2ff; margin: 4px 0;">Prize: 0 ETB</p>
-            <p id="win-pattern" style="color:#ffc107; margin: 4px 0;">Pattern: --</p>
-            <p id="win-card-id" style="margin: 4px 0;">Card #--</p>
+        <div class="modal-box">
+            <div class="win-heading">🏆 BINGO!</div>
+            <div id="win-player-badge" class="win-badge">Player won!</div>
             
-            <div class="bingo-grid" style="margin-top: 8px;">
-                <div class="b-header b-green">🟢 B</div>
-                <div class="b-header b-yellow">🟡 I</div>
-                <div class="b-header b-red">🔴 N</div>
-                <div class="b-header b-blue">🔵 G</div>
-                <div class="b-header b-green">🟢 O</div>
+            <div class="win-headers">
+                <span class="mh-b">B</span>
+                <span class="mh-i">I</span>
+                <span class="mh-n">N</span>
+                <span class="mh-g">G</span>
+                <span class="mh-o">O</span>
             </div>
-            <div id="win-card-grid" class="bingo-grid"></div>
             
-            <p id="win-timer" style="margin-top: 8px; color: #28a745; font-weight: bold;">Card Selection in: --s</p>
+            <div id="win-card-grid" class="win-grid"></div>
+
+            <div class="win-footer">
+                <span id="win-prize-txt">Prize: 0 ETB</span>
+                <span id="win-card-txt">Card# --</span>
+            </div>
+            <div id="win-timer-txt" class="win-next">Next Game in: 10s</div>
         </div>
     </div>
 
@@ -88,15 +160,18 @@
         const userId = 'user_' + Math.floor(Math.random() * 8999 + 1000);
         let selectedCards = {};
 
-        function initCallerBoard() {
-            const board = document.getElementById('caller-board');
-            board.innerHTML = '';
-            for (let i = 1; i <= 75; i++) {
-                const b = document.createElement('div');
-                b.className = 'ball-num';
-                b.id = `caller-ball-${i}`;
-                b.innerText = i;
-                board.appendChild(b);
+        function initMatrixBoard() {
+            const container = document.getElementById('matrix-cells-container');
+            container.innerHTML = '';
+            for (let r = 0; r < 15; r++) {
+                for (let c = 0; c < 5; c++) {
+                    const num = (c * 15) + (r + 1);
+                    const cell = document.createElement('div');
+                    cell.className = 'matrix-cell';
+                    cell.id = `matrix-cell-${num}`;
+                    cell.innerText = num;
+                    container.appendChild(cell);
+                }
             }
         }
 
@@ -105,7 +180,7 @@
                 const res = await fetch('/api/game/select-card', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cardId, userId, userName: 'Player (' + userId.slice(-4) + ')' })
+                    body: JSON.stringify({ cardId, userId, userName: 'aemro (*9025)' })
                 });
                 const data = await res.json();
                 if (data.success) {
@@ -119,100 +194,81 @@
             }
         }
 
-        function renderPickers() {
-            const container = document.getElementById('picker-container');
-            if (container.children.length === 0) {
-                for (let i = 1; i <= 500; i++) {
-                    const btn = document.createElement('button');
-                    btn.className = 'pick-btn';
-                    btn.id = `pick-btn-${i}`;
-                    btn.innerText = `#${i}`;
-                    btn.onclick = () => selectCard(i);
-                    container.appendChild(btn);
-                }
-            }
-
-            const mySelectedIds = [];
-            for (let k in selectedCards) {
-                if (selectedCards[k].ownerId === userId) {
-                    mySelectedIds.push(selectedCards[k].cardId);
-                }
-            }
-
-            const mySet = new Set(mySelectedIds);
-
-            for (let i = 1; i <= 500; i++) {
-                const btn = document.getElementById(`pick-btn-${i}`);
-                if (btn) {
-                    if (mySet.has(i)) {
-                        btn.classList.add('selected');
-                        btn.innerText = `✓ #${i}`;
-                    } else {
-                        btn.classList.remove('selected');
-                        btn.innerText = `#${i}`;
-                    }
-                }
-            }
-
-            const summary = document.getElementById('selection-summary');
-            if (mySelectedIds.length > 0) {
-                summary.innerText = `Your Selected Cards (${mySelectedIds.length}/4): ` + mySelectedIds.map(id => `#${id}`).join(', ');
-            } else {
-                summary.innerText = `Your Picked Cards: None (Max 4 per player)`;
-            }
-        }
-
-        function updateCallerBoard(calledNumbers) {
+        function updateMatrixBoard(calledNumbers) {
             const calledSet = new Set((calledNumbers || []).map(n => Number(n)));
             for (let i = 1; i <= 75; i++) {
-                const b = document.getElementById(`caller-ball-${i}`);
-                if (b) {
+                const el = document.getElementById(`matrix-cell-${i}`);
+                if (el) {
                     if (calledSet.has(i)) {
-                        b.classList.add('called');
+                        el.classList.add('called');
                     } else {
-                        b.classList.remove('called');
+                        el.classList.remove('called');
                     }
                 }
             }
         }
 
-        function renderPlayerCards(calledNumbers) {
-            const container = document.getElementById('active-cards-container');
+        function renderCards(status, calledNumbers) {
+            const container = document.getElementById('cards-container');
             container.innerHTML = '';
 
             const calledSet = new Set((calledNumbers || []).map(n => String(n)));
 
-            for (let k in selectedCards) {
-                if (selectedCards[k].ownerId !== userId) continue;
-
-                const cardObj = selectedCards[k];
-                const matrix = cardObj.matrix;
-                const cardDiv = document.createElement('div');
-                cardDiv.style.marginBottom = '15px';
-
-                let html = `<h3 style="margin:5px 0; color:#28a745;">Card #${cardObj.cardId}</h3>`;
-                html += `<div class="bingo-grid">
-                            <div class="b-header b-green">🟢 B</div>
-                            <div class="b-header b-yellow">🟡 I</div>
-                            <div class="b-header b-red">🔴 N</div>
-                            <div class="b-header b-blue">🔵 G</div>
-                            <div class="b-header b-green">🟢 O</div>`;
-
-                for (let r = 0; r < 5; r++) {
-                    for (let c = 0; c < 5; c++) {
-                        const val = String(matrix[r][c]);
-                        if (val === 'FREE' || val === 'F') {
-                            html += `<div class="cell free">FREE</div>`;
-                        } else if (calledSet.has(val)) {
-                            html += `<div class="cell called">${val}</div>`;
-                        } else {
-                            html += `<div class="cell uncalled">${val}</div>`;
+            if (status === 'WAITING') {
+                for (let i = 1; i <= 500; i++) {
+                    const cardDiv = document.createElement('div');
+                    let isMine = false;
+                    for (let k in selectedCards) {
+                        if (selectedCards[k].cardId === i && selectedCards[k].ownerId === userId) {
+                            isMine = true;
+                            break;
                         }
                     }
+
+                    cardDiv.className = `card-container ${isMine ? 'selected' : ''}`;
+                    cardDiv.onclick = () => selectCard(i);
+
+                    let html = `<div class="card-title">Card #${i}</div><div class="b-grid">`;
+                    
+                    let bCol = [1,2,3,4,5], iCol = [16,17,18,19,20], nCol = [31,32,'FREE',34,35], gCol = [46,47,48,49,50], oCol = [61,62,63,64,65];
+                    for (let r = 0; r < 5; r++) {
+                        let rowVals = [bCol[r], iCol[r], nCol[r], gCol[r], oCol[r]];
+                        for (let val of rowVals) {
+                            if (val === 'FREE') html += `<div class="b-cell free">FREE</div>`;
+                            else html += `<div class="b-cell">${val}</div>`;
+                        }
+                    }
+                    html += `</div>`;
+                    cardDiv.innerHTML = html;
+                    container.appendChild(cardDiv);
                 }
-                html += `</div>`;
-                cardDiv.innerHTML = html;
-                container.appendChild(cardDiv);
+            } else {
+                for (let k in selectedCards) {
+                    const cardObj = selectedCards[k];
+                    if (cardObj.ownerId !== userId) continue;
+
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'card-container selected';
+
+                    let html = `<div class="card-title">Card #${cardObj.cardId}</div><div class="b-grid">`;
+                    const matrix = cardObj.matrix;
+
+                    for (let r = 0; r < 5; r++) {
+                        for (let c = 0; c < 5; c++) {
+                            const val = String(matrix[r][c]);
+                            if (val === 'FREE' || val === 'F') {
+                                html += `<div class="b-cell free">FREE</div>`;
+                            } else if (calledSet.has(val)) {
+                                html += `<div class="b-cell called">${val}</div>`;
+                            } else {
+                                html += `<div class="b-cell">${val}</div>`;
+                            }
+                        }
+                    }
+                    html += `</div>`;
+                    cardDiv.innerHTML = html;
+                    container.appendChild(cardDiv);
+                }
             }
         }
 
@@ -221,38 +277,46 @@
                 const res = await fetch('/api/game/state?t=' + Date.now());
                 const data = await res.json();
 
-                document.getElementById('stat-players').innerText = `👥 Players: ${data.playerCount || 0}`;
-                document.getElementById('stat-cards').innerText = `🎴 Cards: ${data.totalCards || 0}`;
-                document.getElementById('stat-derash').innerText = `💰 Derash: ${data.derash || 0} ETB`;
+                document.getElementById('stat-derash').innerText = `${data.derash || 0} ETB`;
+                document.getElementById('stat-players').innerText = `${data.playerCount || 0}`;
+                document.getElementById('stat-call').innerText = `${(data.calledNumbers || []).length}/75`;
 
-                const pickerContainer = document.getElementById('picker-container');
+                const tabPick = document.getElementById('tab-pick');
+                const tabLive = document.getElementById('tab-live');
+                const liveSec = document.getElementById('live-section');
+                const timerBar = document.getElementById('timer-bar');
 
                 if (data.status === 'WAITING') {
-                    document.getElementById('stat-mode').innerText = `PICK CARDS (${data.timer}s)`;
-                    pickerContainer.style.display = 'flex';
+                    tabPick.classList.add('active');
+                    tabLive.classList.remove('active');
+                    liveSec.style.display = 'none';
+                    timerBar.innerText = `Next Round in: ${data.timer}s`;
                 } else if (data.status === 'STARTING') {
-                    document.getElementById('stat-mode').innerText = `STARTING (${data.timer}s)`;
-                    pickerContainer.style.display = 'none';
+                    tabPick.classList.remove('active');
+                    tabLive.classList.add('active');
+                    liveSec.style.display = 'none';
+                    timerBar.innerText = `Starting in: ${data.timer}s`;
                 } else if (data.status === 'PLAYING') {
-                    document.getElementById('stat-mode').innerText = `LIVE GAME`;
-                    pickerContainer.style.display = 'none';
+                    tabPick.classList.remove('active');
+                    tabLive.classList.add('active');
+                    liveSec.style.display = 'flex';
+                    timerBar.innerText = `🎮 GAME IN PROGRESS`;
                 } else if (data.status === 'WINNER') {
-                    document.getElementById('stat-mode').innerText = `GAME OVER`;
-                    pickerContainer.style.display = 'none';
+                    tabPick.classList.remove('active');
+                    tabLive.classList.add('active');
+                    liveSec.style.display = 'flex';
+                    timerBar.innerText = `ROUND FINISHED`;
                 }
 
                 if (data.currentBall) {
-                    const colorMap = { green: '#28a745', yellow: '#ffc107', red: '#dc3545', blue: '#007bff' };
-                    const bColor = colorMap[data.currentBall.color] || '#00d2ff';
-                    document.getElementById('current-ball').innerHTML = `<span style="color:${bColor}">${data.currentBall.letter}-${data.currentBall.number}</span>`;
+                    document.getElementById('current-ball').innerText = `${data.currentBall.letter}-${data.currentBall.number}`;
                 } else {
                     document.getElementById('current-ball').innerText = '--';
                 }
 
                 selectedCards = data.userCards || {};
-                renderPickers();
-                updateCallerBoard(data.calledNumbers);
-                renderPlayerCards(data.calledNumbers);
+                updateMatrixBoard(data.calledNumbers);
+                renderCards(data.status, data.calledNumbers);
 
                 if (data.status === 'WINNER' && data.winner) {
                     renderWinnerModal(data.winner, data.calledNumbers || [], data.timer);
@@ -265,11 +329,10 @@
         }
 
         function renderWinnerModal(winner, calledNumbers, timer) {
-            document.getElementById('win-player-name').innerText = `${winner.player} WON!`;
-            document.getElementById('win-prize').innerText = `Prize: ${winner.prize} ETB`;
-            document.getElementById('win-pattern').innerText = `Won by: ${winner.winPattern}`;
-            document.getElementById('win-card-id').innerText = `Card #${winner.cardId}`;
-            document.getElementById('win-timer').innerText = `Card Selection in: ${timer}s`;
+            document.getElementById('win-player-badge').innerText = `${winner.player} won!`;
+            document.getElementById('win-prize-txt').innerText = `Prize: ${winner.prize} ETB`;
+            document.getElementById('win-card-txt').innerText = `Card# ${winner.cardId}`;
+            document.getElementById('win-timer-txt').innerText = `Next Game in: ${timer}s`;
 
             const grid = document.getElementById('win-card-grid');
             grid.innerHTML = '';
@@ -281,14 +344,15 @@
                     for (let c = 0; c < 5; c++) {
                         const val = String(winner.cardMatrix[r][c]);
                         const cell = document.createElement('div');
+                        cell.className = 'win-cell';
                         if (val === 'FREE' || val === 'F') {
-                            cell.className = 'cell free';
-                            cell.innerText = 'FREE';
+                            cell.className += ' hit';
+                            cell.innerText = 'F';
                         } else if (calledSet.has(val)) {
-                            cell.className = 'cell called';
+                            cell.className += ' hit';
                             cell.innerText = val;
                         } else {
-                            cell.className = 'cell uncalled';
+                            cell.className += ' miss';
                             cell.innerText = val;
                         }
                         grid.appendChild(cell);
@@ -298,7 +362,7 @@
             document.getElementById('winner-modal').style.display = 'flex';
         }
 
-        initCallerBoard();
+        initMatrixBoard();
         setInterval(fetchState, 1000);
         fetchState();
     </script>
