@@ -5,47 +5,155 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Job Bingo</title>
     <style>
-        body { font-family: sans-serif; background: #121212; color: #fff; margin: 0; padding: 10px; text-align: center; }
-        .card-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; max-width: 350px; margin: 10px auto; }
-        .cell { background: #222; border: 1px solid #444; padding: 12px 0; font-weight: bold; border-radius: 4px; }
-        .cell.called { background: #28a745; color: #fff; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #121212; color: #ffffff; margin: 0; padding: 12px; text-align: center; }
+        h1 { font-size: 1.6rem; margin: 5px 0 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .status-bar { font-size: 0.9rem; color: #ccc; margin-bottom: 10px; background: #1e1e1e; padding: 8px; border-radius: 6px; }
+        .current-ball { font-size: 2.5rem; font-weight: bold; color: #00d2ff; margin: 10px 0; min-height: 50px; }
+        
+        .card-selector { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 15px; }
+        .card-btn { background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .card-btn.selected { background: #007bff; border-color: #0056b3; }
+
+        .bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; max-width: 340px; margin: 0 auto 15px; }
+        .bingo-header { background: #333; color: #ffc107; font-weight: bold; padding: 8px 0; border-radius: 4px; }
+        .cell { background: #222; border: 1px solid #333; padding: 10px 0; font-weight: bold; font-size: 0.95rem; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+        .cell.called { background: #28a745; color: #fff; border-color: #1e7e34; }
         .cell.free { background: #ffc107; color: #000; }
-        .cell.uncalled { background: #333; color: #888; }
-        #winner-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); flex-direction: column; justify-content: center; align-items: center; }
-        .modal-content { background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 90%; }
+        .cell.uncalled { background: #2a2a2a; color: #aaa; }
+
+        #winner-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); flex-direction: column; justify-content: center; align-items: center; z-index: 999; }
+        .modal-content { background: #1e1e1e; border: 1px solid #444; padding: 15px; border-radius: 10px; width: 90%; max-width: 340px; }
+        .win-title { color: #28a745; font-size: 1.4rem; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
     <h1>JOB BINGO</h1>
-    <div id="status-display">Loading...</div>
-    <div id="current-ball" style="font-size: 2rem; margin: 10px; color: #00d2ff;">--</div>
-    
-    <div id="board" class="card-grid"></div>
+    <div id="status-display" class="status-bar">Loading state...</div>
+    <div id="current-ball" class="current-ball">--</div>
+
+    <div id="selector-container" class="card-selector"></div>
+    <div id="active-cards-container"></div>
 
     <div id="winner-modal">
         <div class="modal-content">
-            <h2 id="win-player-name">Player Won!</h2>
+            <h2 id="win-player-name" class="win-title">Player Won!</h2>
             <p id="win-prize">Prize: 0 ETB</p>
             <p id="win-card-id">Card #--</p>
-            <div id="win-card-grid" class="card-grid"></div>
-            <p id="win-timer">Next Game in: --s</p>
+            
+            <div class="bingo-grid" style="margin-top: 10px;">
+                <div class="bingo-header">B</div>
+                <div class="bingo-header">I</div>
+                <div class="bingo-header">N</div>
+                <div class="bingo-header">G</div>
+                <div class="bingo-header">O</div>
+            </div>
+            <div id="win-card-grid" class="bingo-grid"></div>
+            
+            <p id="win-timer" style="margin-top: 10px; color: #ffc107;">Next Game in: --s</p>
         </div>
     </div>
 
     <script>
-        let currentState = null;
+        let selectedCards = {};
+
+        async function selectCard(cardId) {
+            try {
+                const res = await fetch('/api/game/select-card', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cardId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    selectedCards = data.userCards || {};
+                    fetchState();
+                } else if (data.message) {
+                    alert(data.message);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderSelectors() {
+            const container = document.getElementById('selector-container');
+            if (container.children.length === 0) {
+                for (let i = 1; i <= 10; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'card-btn';
+                    btn.id = `card-btn-${i}`;
+                    btn.innerText = `Card ${i}`;
+                    btn.onclick = () => selectCard(i);
+                    container.appendChild(btn);
+                }
+            }
+
+            for (let i = 1; i <= 10; i++) {
+                const btn = document.getElementById(`card-btn-${i}`);
+                if (btn) {
+                    if (selectedCards[String(i)]) {
+                        btn.classList.add('selected');
+                    } else {
+                        btn.classList.remove('selected');
+                    }
+                }
+            }
+        }
+
+        function renderPlayerCards(calledNumbers) {
+            const container = document.getElementById('active-cards-container');
+            container.innerHTML = '';
+
+            const calledSet = new Set((calledNumbers || []).map(n => String(n)));
+
+            for (let cardId in selectedCards) {
+                const matrix = selectedCards[cardId];
+                const cardDiv = document.createElement('div');
+                cardDiv.style.marginBottom = '20px';
+
+                let html = `<h3 style="margin:5px 0;">Card #${cardId}</h3>`;
+                html += `<div class="bingo-grid">
+                            <div class="bingo-header">B</div>
+                            <div class="bingo-header">I</div>
+                            <div class="bingo-header">N</div>
+                            <div class="bingo-header">G</div>
+                            <div class="bingo-header">O</div>`;
+
+                for (let r = 0; r < 5; r++) {
+                    for (let c = 0; c < 5; c++) {
+                        const val = String(matrix[r][c]);
+                        if (val === 'FREE' || val === 'F') {
+                            html += `<div class="cell free">F</div>`;
+                        } else if (calledSet.has(val)) {
+                            html += `<div class="cell called">${val}</div>`;
+                        } else {
+                            html += `<div class="cell uncalled">${val}</div>`;
+                        }
+                    }
+                }
+                html += `</div>`;
+                cardDiv.innerHTML = html;
+                container.appendChild(cardDiv);
+            }
+        }
 
         async function fetchState() {
             try {
                 const res = await fetch('/api/game/state');
                 const data = await res.json();
-                currentState = data;
 
                 document.getElementById('status-display').innerText = `Status: ${data.status} | Timer: ${data.timer}s | Derash: ${data.derash} ETB`;
+                
                 if (data.currentBall) {
                     document.getElementById('current-ball').innerText = `${data.currentBall.letter}-${data.currentBall.number}`;
+                } else {
+                    document.getElementById('current-ball').innerText = '--';
                 }
+
+                renderSelectors();
+                renderPlayerCards(data.calledNumbers);
 
                 if (data.status === 'WINNER' && data.winner) {
                     renderWinnerModal(data.winner, data.calledNumbers || [], data.timer);
@@ -71,19 +179,17 @@
             if (winner.cardMatrix && Array.isArray(winner.cardMatrix)) {
                 for (let r = 0; r < 5; r++) {
                     for (let c = 0; c < 5; c++) {
-                        const val = winner.cardMatrix[r][c];
+                        const val = String(winner.cardMatrix[r][c]);
                         const cell = document.createElement('div');
-                        
-                        const strVal = String(val);
-                        if (strVal === 'FREE' || strVal === 'F') {
+                        if (val === 'FREE' || val === 'F') {
                             cell.className = 'cell free';
                             cell.innerText = 'F';
-                        } else if (calledSet.has(strVal)) {
+                        } else if (calledSet.has(val)) {
                             cell.className = 'cell called';
-                            cell.innerText = strVal;
+                            cell.innerText = val;
                         } else {
                             cell.className = 'cell uncalled';
-                            cell.innerText = strVal;
+                            cell.innerText = val;
                         }
                         grid.appendChild(cell);
                     }
